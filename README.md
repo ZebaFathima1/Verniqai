@@ -31,6 +31,7 @@ For local AI features, create `.env.local` from `.env.example` and add your own 
 ## Vercel-ready setup
 
 This version is designed to deploy on Vercel without any external database. The app keeps profile and onboarding state in browser localStorage for a polished prototype that can run immediately in production.
+Creating an account, signing in, and signing out work locally in the current browser; locally created accounts do not sync to another browser or device. Passwords are salted and hashed before local storage, but client-side demo authentication is not suitable for real accounts.
 
 ## Environment variables
 

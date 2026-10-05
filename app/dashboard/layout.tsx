@@ -8,6 +8,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const isLoginRoute = pathname === "/dashboard/login";
+  const isPublicRoute = isLoginRoute || pathname === "/dashboard/onboarding";
 
   useEffect(() => {
     const session = getCurrentSession();
@@ -17,10 +18,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    if (!session && !isLoginRoute) {
+    if (!session && !isPublicRoute) {
       router.replace("/dashboard/login");
     }
-  }, [isLoginRoute, pathname, router]);
+  }, [isLoginRoute, isPublicRoute, pathname, router]);
 
   return <>{children}</>;
 }

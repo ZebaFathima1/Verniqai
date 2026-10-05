@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { signUpWithEmail } from "@/lib/auth";
-import { saveProfile } from "@/lib/profile-data";
 
 const initialForm = {
   name: "Rahul Sharma",
-  email: "rahul@verniq.ai",
+  email: "you@example.com",
   password: "demo1234",
   targetRole: "AI / ML Engineer",
   fieldOfStudy: "Computer Science",
@@ -17,6 +17,7 @@ const initialForm = {
 };
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [form, setForm] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -34,18 +35,11 @@ export default function OnboardingPage() {
       name: form.name,
       email: form.email,
       password: form.password,
+      targetRole: form.targetRole,
+      fieldOfStudy: form.fieldOfStudy,
+      learningTrack: form.track,
+      focusArea: form.focus,
     });
-
-    if (result.ok) {
-      await saveProfile({
-        name: form.name,
-        email: form.email,
-        targetRole: form.targetRole,
-        fieldOfStudy: form.fieldOfStudy,
-        learningTrack: form.track,
-        focusArea: form.focus,
-      });
-    }
 
     setIsSubmitting(false);
 
@@ -60,6 +54,7 @@ export default function OnboardingPage() {
         result.message ??
         "Your profile is ready. We have created your learning and career plan.",
     });
+    router.replace("/dashboard");
   };
 
   return (

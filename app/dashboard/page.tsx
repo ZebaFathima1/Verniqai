@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BriefcaseBusiness, Gauge, MessageSquareText, Target, TrendingUp } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Gauge, MessageSquareText, Sparkles, Target, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentSession, signOut } from "@/lib/auth";
 import { getDashboardData, getDemoProfileSnapshot } from "@/lib/profile-data";
@@ -22,6 +22,13 @@ const navItems = [
 export default function DashboardPage() {
   const router = useRouter();
   const [snapshot, setSnapshot] = useState(getDemoProfileSnapshot());
+  const [aiGuidance, setAiGuidance] = useState<{
+    summary: string;
+    recommendations: string[];
+    confidence: number;
+  } | null>(null);
+  const [isGeneratingGuidance, setIsGeneratingGuidance] = useState(false);
+  const [guidanceError, setGuidanceError] = useState("");
 
   useEffect(() => {
     const session = getCurrentSession();
@@ -41,6 +48,38 @@ export default function DashboardPage() {
   }, [router]);
 
   const { profile, careerDNA, dashboardInsights, nextAction, roadmap, weeklyMomentum } = snapshot;
+  const initials = profile.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  async function generateGuidance() {
+    setIsGeneratingGuidance(true);
+    setGuidanceError("");
+    try {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goal: profile.targetRole,
+          profile: careerDNA.map(({ category, score }) => `${category}: ${score}/100`).join(", "),
+          focus: "Identify the highest-impact skill gap and recommend practical next steps.",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not generate career guidance.");
+      setAiGuidance(data);
+    } catch (error) {
+      setGuidanceError(
+        error instanceof Error ? error.message : "Could not generate career guidance.",
+      );
+    } finally {
+      setIsGeneratingGuidance(false);
+    }
+  }
 
   return (
     <div className="flex min-h-screen bg-[#fafafa] text-slate-900 dark:bg-[#09090b] dark:text-slate-50">
@@ -92,9 +131,6 @@ export default function DashboardPage() {
                 <span>⌘K</span>
                 <span>Search</span>
               </div>
-              <button className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                🔔
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -104,13 +140,34 @@ export default function DashboardPage() {
                 className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
               >
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#635bff] text-xs font-semibold text-white">
-                  RS
+                  {initials}
                 </span>
                 Sign out
               </button>
             </div>
           </div>
         </header>
+
+        <nav
+          aria-label="Dashboard navigation"
+          className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3 lg:hidden dark:border-slate-800 dark:bg-[#111113]"
+        >
+          {navItems.map(({ label, href }) => (
+            <Link
+              key={href}
+              href={href}
+              className="shrink-0 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            >
+              {label}
+            </Link>
+          ))}
+          <Link
+            href="/dashboard/mentor"
+            className="shrink-0 rounded-full bg-[#635bff]/10 px-3 py-2 text-xs font-medium text-[#635bff]"
+          >
+            Ask VERNIQ
+          </Link>
+        </nav>
 
         <main className="flex-1 p-4 lg:p-8">
           <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
@@ -278,7 +335,36 @@ export default function DashboardPage() {
 
             <div className="space-y-6">
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
-                <p className="text-sm text-slate-500 dark:text-slate-400">AI Insights</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">AI Insights</p>
+                  <button
+                    type="button"
+                    onClick={() => void generateGuidance()}
+                    disabled={isGeneratingGuidance}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#635bff]/10 px-3 py-1.5 text-xs font-medium text-[#635bff] disabled:opacity-60"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {isGeneratingGuidance ? "Thinking..." : "Ask AI"}
+                  </button>
+                </div>
+                {guidanceError && (
+                  <p className="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
+                    {guidanceError}
+                  </p>
+                )}
+                {aiGuidance && (
+                  <div aria-live="polite" className="mt-4 rounded-xl bg-[#635bff]/5 p-3">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {aiGuidance.summary}
+                    </p>
+                    <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                      {aiGuidance.recommendations.map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                    <p className="mt-2 text-xs text-slate-500">
+                      AI confidence estimate: {Math.round(aiGuidance.confidence * 100)}%
+                    </p>
+                  </div>
+                )}
                 <div className="mt-4 space-y-3">
                   {dashboardInsights.map((text) => (
                     <div

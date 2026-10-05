@@ -1,18 +1,23 @@
 import { z } from "zod";
 
 const signInSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string().min(8),
 });
 
 const signUpSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
+  name: z.string().trim().min(2).max(100),
+  email: z.string().trim().email().max(254),
+  password: z.string().min(8).max(128),
+  targetRole: z.string().trim().min(2).max(120).optional(),
+  fieldOfStudy: z.string().trim().max(120).optional(),
+  learningTrack: z.string().trim().max(120).optional(),
+  focusArea: z.string().trim().max(500).optional(),
 });
 
 const PROFILE_STORAGE_KEY = "verniq-profile";
 const SESSION_STORAGE_KEY = "verniq-session";
+const ACCOUNTS_STORAGE_KEY = "verniq-local-accounts";
 
 export const DEMO_USER = {
   name: "Rahul Sharma",
@@ -20,7 +25,7 @@ export const DEMO_USER = {
   password: "demo1234",
 };
 
-type StoredProfile = {
+export type StoredProfile = {
   name: string;
   email: string;
   targetRole?: string;
@@ -29,130 +34,221 @@ type StoredProfile = {
   focusArea?: string;
 };
 
+type LocalAccount = {
+  salt: string;
+  passwordHash: string;
+  profile: StoredProfile;
+};
+
+const storedProfileSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  targetRole: z.string().optional(),
+  fieldOfStudy: z.string().optional(),
+  learningTrack: z.string().optional(),
+  focusArea: z.string().optional(),
+});
+
+const localAccountSchema = z.record(
+  z.string().email(),
+  z.object({
+    salt: z.string(),
+    passwordHash: z.string(),
+    profile: storedProfileSchema,
+  }),
+);
+
+function profileStorageKey(email: string) {
+  return `${PROFILE_STORAGE_KEY}:${email.trim().toLowerCase()}`;
+}
+
 export function getCurrentSession(): StoredProfile | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
+  if (typeof window === "undefined") return null;
 
   try {
     const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
-    return JSON.parse(raw) as StoredProfile;
+    if (!raw) return null;
+    const parsed = storedProfileSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
 }
 
-function readStoredProfile(): StoredProfile | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
+function readStoredProfile(email: string): StoredProfile | null {
+  if (typeof window === "undefined") return null;
 
   try {
-    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) {
-      return null;
+    const raw = window.localStorage.getItem(profileStorageKey(email));
+    if (raw) {
+      const parsed = storedProfileSchema.safeParse(JSON.parse(raw));
+      return parsed.success ? parsed.data : null;
     }
 
-    return JSON.parse(raw) as StoredProfile;
+    const legacy = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!legacy) return null;
+    const parsed = storedProfileSchema.safeParse(JSON.parse(legacy));
+    return parsed.success && parsed.data.email.toLowerCase() === email.toLowerCase()
+      ? parsed.data
+      : null;
   } catch {
     return null;
   }
 }
 
-function writeStoredProfile(profile: StoredProfile) {
-  if (typeof window === "undefined") {
-    return;
-  }
+function readAccounts(): Record<string, LocalAccount> {
+  if (typeof window === "undefined") return {};
 
-  window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+  try {
+    const raw = window.localStorage.getItem(ACCOUNTS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = localAccountSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : {};
+  } catch {
+    return {};
+  }
 }
 
 function writeSession(profile: StoredProfile) {
   if (typeof window === "undefined") {
-    return;
+    throw new Error("Sign-in is only available in a browser.");
   }
-
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(profile));
 }
 
-export function signOut() {
-  if (typeof window === "undefined") {
-    return;
-  }
+function createSalt() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
+async function hashPassword(password: string, salt: string) {
+  const bytes = new TextEncoder().encode(`${salt}:${password}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function safeEqual(left: string, right: string) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
+export function signOut() {
+  if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
 export async function signInWithEmail(input: unknown) {
   const parsed = signInSchema.safeParse(input);
-
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid credentials" };
+    return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid credentials" };
   }
 
-  const storedProfile = readStoredProfile();
-  const emailMatchesStored =
-    storedProfile && storedProfile.email.toLowerCase() === parsed.data.email.toLowerCase();
+  const email = parsed.data.email.toLowerCase();
   const isDemoLogin =
-    parsed.data.email.toLowerCase() === DEMO_USER.email.toLowerCase() &&
-    parsed.data.password === DEMO_USER.password;
+    email === DEMO_USER.email && parsed.data.password === DEMO_USER.password;
 
-  if (emailMatchesStored) {
-    writeSession(storedProfile);
+  try {
+    if (isDemoLogin) {
+      const demoProfile = readStoredProfile(email) ?? {
+        name: DEMO_USER.name,
+        email: DEMO_USER.email,
+      };
+      writeSession(demoProfile);
+      return {
+        ok: true as const,
+        demo: true,
+        message: "Signed in to the local VERNIQ demo account.",
+        profile: demoProfile,
+      };
+    }
+
+    const account = readAccounts()[email];
+    if (!account) {
+      return {
+        ok: false as const,
+        error: "No local profile matches that email. Create a profile on this device first.",
+      };
+    }
+
+    const suppliedHash = await hashPassword(parsed.data.password, account.salt);
+    if (!safeEqual(suppliedHash, account.passwordHash)) {
+      return { ok: false as const, error: "Email or password is incorrect." };
+    }
+
+    const profile = readStoredProfile(email) ?? account.profile;
+    writeSession(profile);
     return {
-      ok: true,
+      ok: true as const,
       demo: true,
-      message: "Demo mode enabled. Sign-in is simulated for the Vercel-ready prototype flow.",
-      profile: storedProfile,
+      message: "Signed in to your local VERNIQ profile.",
+      profile,
+    };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error:
+        error instanceof Error
+          ? `Could not sign in: ${error.message}`
+          : "Could not sign in on this browser.",
     };
   }
-
-  if (isDemoLogin) {
-    const demoProfile = {
-      name: DEMO_USER.name,
-      email: DEMO_USER.email,
-    };
-
-    writeStoredProfile(demoProfile);
-    writeSession(demoProfile);
-
-    return {
-      ok: true,
-      demo: true,
-      message: "Demo mode enabled. You are signed in to the default VERNIQ demo account.",
-      profile: demoProfile,
-    };
-  }
-
-  return {
-    ok: false,
-    error: "No account matches those credentials. Try the demo account or create a profile first.",
-  };
 }
 
 export async function signUpWithEmail(input: unknown) {
   const parsed = signUpSchema.safeParse(input);
-
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid signup payload" };
+    return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Invalid signup payload" };
+  }
+  if (typeof window === "undefined") {
+    return { ok: false as const, error: "Profile creation is only available in a browser." };
   }
 
-  const profile = {
-    name: parsed.data.name,
-    email: parsed.data.email,
-  };
+  const email = parsed.data.email.toLowerCase();
+  if (email === DEMO_USER.email) {
+    return { ok: false as const, error: "That email is reserved for the VERNIQ demo account." };
+  }
 
-  writeStoredProfile(profile);
-  writeSession(profile);
+  try {
+    const accounts = readAccounts();
+    if (accounts[email]) {
+      return {
+        ok: false as const,
+        error: "A profile with this email already exists on this device. Sign in instead.",
+      };
+    }
 
-  return {
-    ok: true,
-    demo: true,
-    message: "Demo mode enabled. Your profile has been created locally for the Vercel-ready prototype flow.",
-    profile,
-  };
+    const profile: StoredProfile = {
+      name: parsed.data.name,
+      email,
+      targetRole: parsed.data.targetRole,
+      fieldOfStudy: parsed.data.fieldOfStudy,
+      learningTrack: parsed.data.learningTrack,
+      focusArea: parsed.data.focusArea,
+    };
+    const salt = createSalt();
+    const passwordHash = await hashPassword(parsed.data.password, salt);
+    accounts[email] = { salt, passwordHash, profile };
+    window.localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+    window.localStorage.setItem(profileStorageKey(email), JSON.stringify(profile));
+    writeSession(profile);
+
+    return {
+      ok: true as const,
+      demo: true,
+      message: "Your local profile is ready on this browser.",
+      profile,
+    };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error:
+        error instanceof Error
+          ? `Could not create your profile: ${error.message}`
+          : "Could not create your profile on this browser.",
+    };
+  }
 }

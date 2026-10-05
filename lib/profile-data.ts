@@ -1,6 +1,7 @@
 import { careerDNA, careerSkills, dashboardInsights, demoProfile, interviewMetrics, jobMatch, nextAction, projectCards, roadmapItems, resumeMetrics, techRadar, weeklyMomentum } from "@/lib/demo-data";
 
 const PROFILE_STORAGE_KEY = "verniq-profile";
+const SESSION_STORAGE_KEY = "verniq-session";
 
 export type ProfileSnapshot = {
   profile: typeof demoProfile;
@@ -43,14 +44,22 @@ export function getDemoProfileSnapshot(): ProfileSnapshot {
   };
 }
 
-function readStoredProfile(): Partial<ProfileForm> | null {
+function readStoredProfile(email: string): Partial<ProfileForm> | null {
   if (typeof window === "undefined") {
     return null;
   }
 
   try {
-    const raw = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Partial<ProfileForm>) : null;
+    const key = `${PROFILE_STORAGE_KEY}:${email.trim().toLowerCase()}`;
+    const raw = window.localStorage.getItem(key);
+    if (raw) {
+      return JSON.parse(raw) as Partial<ProfileForm>;
+    }
+
+    const legacy = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!legacy) return null;
+    const profile = JSON.parse(legacy) as Partial<ProfileForm>;
+    return profile.email?.toLowerCase() === email.toLowerCase() ? profile : null;
   } catch {
     return null;
   }
@@ -67,7 +76,10 @@ export function saveProfile(input: ProfileForm) {
   };
 
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    window.localStorage.setItem(
+      `${PROFILE_STORAGE_KEY}:${profile.email.trim().toLowerCase()}`,
+      JSON.stringify(profile),
+    );
   }
 
   return { ok: true, demo: true, profile };
@@ -75,7 +87,18 @@ export function saveProfile(input: ProfileForm) {
 
 export async function getDashboardData() {
   const snapshot = getDemoProfileSnapshot();
-  const stored = readStoredProfile();
+  let sessionEmail = "";
+  if (typeof window !== "undefined") {
+    try {
+      const session = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (session) {
+        sessionEmail = (JSON.parse(session) as { email?: string }).email ?? "";
+      }
+    } catch {
+      sessionEmail = "";
+    }
+  }
+  const stored = sessionEmail ? readStoredProfile(sessionEmail) : null;
 
   if (!stored) {
     return { ok: true, demo: true, data: snapshot };
