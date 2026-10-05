@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VERNIQ AI
 
-## Getting Started
+VERNIQ AI is a premium AI career intelligence platform for students and institutions. It combines skill assessment, roadmap generation, project guidance, resume analysis, job match intelligence, and interview preparation into one cohesive experience.
 
-First, run the development server:
+## Project overview
+
+VERNIQ helps students understand where they are today, identify gaps against their target role, and get a personalized recommendation for what to do next. The product emphasizes career readiness over generic content consumption.
+
+## Tech stack
+
+- Next.js 15+
+- TypeScript
+- App Router
+- Tailwind CSS
+- Framer Motion
+- Recharts
+- Vercel-ready local prototype storage via browser localStorage
+- Optional OpenAI via server-side API calls
+
+## Local setup
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Open http://localhost:3000 to view the app.
+
+## Vercel-ready setup
+
+This version is designed to deploy on Vercel without any external database. The app keeps profile and onboarding state in browser localStorage for a polished prototype that can run immediately in production.
+
+## Environment variables
+
+```bash
+OPENAI_API_KEY=
+NEXT_PUBLIC_APP_URL=
+```
+
+OpenAI is optional. If no key is set, the app uses a safe local fallback response.
+
+## Vercel deployment
+
+```bash
+git init
+git add .
+git commit -m "Initial VERNIQ AI commit"
+# Import the repository into Vercel
+# Set optional environment variables in Vercel dashboard
+# Deploy
+```
+
+Deployment flow:
+
+```text
+GitHub
+   ↓
+Import repository into Vercel
+   ↓
+Add optional env vars
+   ↓
+Deploy
+```
+
+## Demo account
+
+- Name: Rahul Sharma
+- Target role: AI / ML Engineer
+- Career readiness: 76%
+
+## Architecture overview
+
+- Landing page and marketing content: `app/page.tsx`
+- Dashboard experience: `app/dashboard/page.tsx`
+- Product routes: `app/dashboard/*`
+- API handlers: `app/api/*`
+- AI logic: `lib/ai/*`
+- Shared demo data: `lib/demo-data.ts`
+
+## Scripts
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run lint
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
