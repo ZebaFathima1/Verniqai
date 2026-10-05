@@ -15,17 +15,18 @@ VERNIQ helps students understand where they are today, identify gaps against the
 - Framer Motion
 - Recharts
 - Vercel-ready local prototype storage via browser localStorage
-- Optional OpenAI via server-side API calls
+- Optional xAI Grok via server-side API calls
 
 ## Local setup
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
 Open http://localhost:3000 to view the app.
+
+For local AI features, create `.env.local` from `.env.example` and add your own xAI API key. Never commit `.env.local` or expose the key through a `NEXT_PUBLIC_` variable.
 
 ## Vercel-ready setup
 
@@ -34,11 +35,14 @@ This version is designed to deploy on Vercel without any external database. The 
 ## Environment variables
 
 ```bash
-OPENAI_API_KEY=
+XAI_API_KEY=
+XAI_MODEL=grok-4.7
 NEXT_PUBLIC_APP_URL=
 ```
 
-OpenAI is optional. If no key is set, the app uses a safe local fallback response.
+xAI powers the AI mentor chat, resume analysis, job-fit analysis, interview coaching, and career guidance API. Add `XAI_API_KEY` in Vercel Project Settings → Environment Variables, then redeploy. `XAI_MODEL` is optional. AI endpoints return a configuration error until a valid key is set; the key is only used by server-side API routes and is never sent to the browser.
+
+The login/profile flow is a browser-local prototype, not production authentication. Do not use it for real accounts or private user data. AI routes are publicly callable in this demo; protect them with real server-side authentication and usage limits before opening the app to the public.
 
 ## Vercel deployment
 
