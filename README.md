@@ -39,13 +39,12 @@ Creating an account, signing in, and signing out work locally in the current bro
 ```bash
 GROQ_API_KEY=
 GROQ_MODEL=openai/gpt-oss-120b
-TAVILY_API_KEY=
 NEXT_PUBLIC_APP_URL=
 ```
 
 Groq powers the AI mentor chat, resume analysis, job-fit analysis, interview coaching, and career guidance API. Add `GROQ_API_KEY` in Vercel Project Settings → Environment Variables, then redeploy. `GROQ_MODEL` is optional; the default is `openai/gpt-oss-120b`. AI endpoints return a configuration error until a valid key is set; the key is only used by server-side API routes and is never sent to the browser.
 
-News and opportunity search also require a `TAVILY_API_KEY`. Groq's standard chat API does not browse the web; Tavily supplies live search results, which are passed to Groq for structured summaries. Add the Tavily key as a server-only environment variable in `.env.local` and Vercel. The Groq key alone powers non-browsing AI features but cannot enable live search.
+The AI News and Opportunities pages also use `GROQ_API_KEY`, but provide AI-generated research topics and opportunity ideas rather than live listings. They do not require a separate search-provider key. Links open a web search so users can verify current details. Groq chat models generate text and cannot guarantee real-time facts, listing availability, or citations.
 
 ### Configure a local key safely
 
@@ -59,7 +58,7 @@ In the Vercel project, open **Settings → Environment Variables**, add `GROQ_AP
 
 The login/profile flow and level-specific progress are a browser-local prototype, not production authentication or billing. Data does not sync across browsers or devices. AI routes are publicly callable in this demo because the browser-local session cannot authenticate API requests; protect them with real server-side authentication and usage limits before opening the app to the public.
 
-The AI News page and opportunity recommendations use live Tavily search results as source material and Groq to structure and summarize them. Opportunity availability and dates are not guaranteed; confirm details with the linked source. Groq-hosted Compound models were retired in September 2026, so live search uses a separate Tavily provider. GitHub Intelligence reads public profile and repository data from GitHub only. AI-generated skill-gap guidance is based on self-reported inputs and is not a verified assessment. Career readiness and hiring outcomes are not guaranteed.
+The AI News page generates career research topics with Groq; it does not report live news. Opportunity recommendations are AI-generated suggestions, not verified listings. Both provide search links so users can check current details and availability. GitHub Intelligence reads public profile and repository data from GitHub only. AI-generated skill-gap guidance is based on self-reported inputs and is not a verified assessment. Career readiness and hiring outcomes are not guaranteed.
 
 ## Learning levels
 

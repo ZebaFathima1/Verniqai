@@ -60,9 +60,9 @@ export default function NewsPage() {
       <div className="mx-auto max-w-6xl">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#635bff]">AI NEWS · {level.toUpperCase()}</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">The latest signals for your career</h1>
-            <p className="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">Current reporting and announcements, researched and tailored to your target role.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#635bff]">CAREER IDEAS · {level.toUpperCase()}</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight">Topics worth exploring</h1>
+            <p className="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">AI-generated career topics tailored to your role, with links to check the latest reporting.</p>
           </div>
           <label className="text-sm">
             <span className="mb-1 block text-slate-500">Topic</span>
@@ -100,8 +100,8 @@ export default function NewsPage() {
             );
           })}
         </section>
-        {isLoading && items.length === 0 && <p className="mt-8 text-sm text-slate-500" role="status">Searching current sources for career news…</p>}
-        {!isLoading && !error && items.length === 0 && <p className="mt-8 text-sm text-slate-500">No cited briefings were found for that topic. Try another topic.</p>}
+        {isLoading && items.length === 0 && <p className="mt-8 text-sm text-slate-500" role="status">Generating career research topics…</p>}
+        {!isLoading && !error && items.length === 0 && <p className="mt-8 text-sm text-slate-500">No topics were generated for this filter. Try another topic.</p>}
       </div>
     </main>
   );

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AiServiceError, requestGroqWebJson } from "@/lib/ai";
+import { AiServiceError, requestGroqJson } from "@/lib/ai";
 import { normalizeLevel } from "@/lib/levels";
 
 export const dynamic = "force-dynamic";
@@ -23,22 +23,17 @@ const newsSchema = z.object({
     title: z.string().min(8).max(180),
     category: z.enum(categories),
     summary: z.string().min(20).max(500),
-    publishedAt: z.string().max(80),
-    sourceName: z.string().min(2).max(120),
-    sourceUrl: z.string().url(),
     whyItMatters: z.string().min(15).max(400),
     action: z.string().min(10).max(300),
     matchedSkills: z.array(z.string().max(80)).max(6),
   })).max(8),
 });
 
-function normalizedUrl(value: string) {
-  try {
-    const url = new URL(value);
-    return `${url.hostname}${url.pathname.replace(/\/+$/, "")}`.toLowerCase();
-  } catch {
-    return "";
-  }
+function newsSearchUrl(title: string, targetRole: string): string {
+  const url = new URL("https://www.google.com/search");
+  url.searchParams.set("q", `${title} ${targetRole}`.trim());
+  url.searchParams.set("tbm", "nws");
+  return url.toString();
 }
 
 export async function GET(request: Request) {
@@ -56,42 +51,32 @@ export async function GET(request: Request) {
     .slice(0, 10);
 
   try {
-    const result = await requestGroqWebJson(
-      "You are VERNIQ AI's career news researcher. Use only the live search results supplied in the user message. Do not invent dates, facts, organizations, or source links. Return only valid JSON with an items array. Each item must have title, category (one of the requested categories), concise factual summary, publishedAt (use the source's date or 'Date not stated'), sourceName, sourceUrl (an exact URL from the supplied search results), whyItMatters tailored to the learner level, action (one practical next step), and matchedSkills. Include only items from the last month when a publication date is available; otherwise omit them. Return up to 6 items and an empty array when none are verifiable.",
-      `Find career-relevant news published in the last 30 days.\nTarget role: ${targetRole || "technology careers"}\nLearner level: ${level}\nLearning skills: ${skills.join(", ") || "not supplied"}\nRequested topic: ${selectedCategory}\nAllowed topic labels: ${categories.join(", ")}\nFor every result, cite a source URL that exactly matches one of the supplied search results.`,
+    const result = await requestGroqJson(
+      "You are VERNIQ AI, a career coach creating evergreen career-topic briefings, not reporting live news. You have no web browsing. Never present an event, organization, date, statistic, or announcement as current or verified. Return valid JSON with an items array of useful themes or questions to research, not purported breaking news. Every summary must clearly state that the reader should check current sources. Each item must have title, category, summary, whyItMatters, action, and matchedSkills. Return up to 6 items and do not fabricate citations.",
+      `Suggest evergreen career topics worth researching.\nTarget role: ${targetRole || "technology careers"}\nLearner level: ${level}\nLearning skills: ${skills.join(", ") || "not supplied"}\nRequested topic: ${selectedCategory}\nAllowed topic labels: ${categories.join(", ")}\nAvoid claims about current events. Use titles phrased as themes to investigate, not headlines about events that may not have happened.`,
       newsSchema,
-      `${selectedCategory === "All" ? "technology AI careers" : selectedCategory} ${targetRole} ${skills.join(" ")} after:${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}`,
-      { topic: "news", timeRange: "month" },
     );
 
-    const citationByIdentity = new Map(result.citations.map((url) => [normalizedUrl(url), url]));
-    const sourceNameByIdentity = new Map(
-      result.sources.map((source) => [normalizedUrl(source.url), source.source || new URL(source.url).hostname]),
-    );
-    const items = result.data.items.flatMap((item) => {
-      const sourceUrl = citationByIdentity.get(normalizedUrl(item.sourceUrl));
-      if (!sourceUrl) return [];
-      const sourceName = sourceNameByIdentity.get(normalizedUrl(sourceUrl)) ?? new URL(sourceUrl).hostname.replace(/^www\./, "");
-      return [{
+    const items = result.items.map((item) => ({
         ...item,
-        id: `${item.category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${normalizedUrl(sourceUrl).replace(/[^a-z0-9]+/g, "-")}`,
-        sourceName,
-        sourceUrl,
+        id: `${item.category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}`,
+        publishedAt: "AI-generated topic · not live news",
+        sourceName: "Search latest reporting",
+        sourceUrl: newsSearchUrl(item.title, targetRole),
         personalized: item.matchedSkills.length > 0,
         whyItMattersToYou: item.whyItMatters,
-      }];
-    });
+    }));
 
     return NextResponse.json({
       categories,
       items,
-      freshness: "Live news search · source links checked against current search results",
+      freshness: "AI-generated career research ideas, not live news. Use the links to check current reporting.",
       searchedAt: new Date().toISOString(),
     });
   } catch (error) {
     if (error instanceof AiServiceError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
-    return NextResponse.json({ error: "Could not retrieve current news." }, { status: 500 });
+    return NextResponse.json({ error: "Could not generate career research topics." }, { status: 500 });
   }
 }
