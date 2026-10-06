@@ -18,30 +18,19 @@ const problemPoints = [
 
 const pricingTiers = [
   {
-    name: "Free",
+    name: "BASIC",
     price: "₹0",
-    features: ["Basic Career DNA", "Basic assessment", "AI Mentor", "Basic roadmap"],
+    features: ["Foundation learning paths", "Practice check-ins", "AI mentor", "Career exploration"],
   },
   {
-    name: "Pro",
-    price: "₹249/month",
-    features: [
-      "Advanced Career DNA",
-      "Resume Intelligence",
-      "Job Match",
-      "AI Interview",
-      "Advanced Projects",
-    ],
+    name: "INTERMEDIATE",
+    price: "Prototype access",
+    features: ["Practical skill-building", "Project milestones", "Public GitHub insights", "Skill-gap coaching"],
   },
   {
-    name: "Institution",
-    price: "Custom",
-    features: [
-      "College dashboard",
-      "Skill intelligence",
-      "Career readiness analytics",
-      "Training recommendations",
-    ],
+    name: "PRO",
+    price: "Prototype access",
+    features: ["Resume and job tools", "Interview practice", "Portfolio checklist", "30-day career sprint"],
   },
 ] as const;
 
@@ -119,10 +108,10 @@ export default function HomePage() {
             <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_25px_80px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-[#111113]">
               <div className="mb-5 flex items-center justify-between">
                 <span className="text-sm text-slate-500 dark:text-slate-400">
-                  Career Readiness
+                  Sample learner snapshot
                 </span>
-                <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600">
-                  +8% this month
+                <span className="rounded-full bg-[#635bff]/10 px-2.5 py-1 text-xs font-medium text-[#5148e5]">
+                  Illustrative preview
                 </span>
               </div>
 
@@ -130,7 +119,7 @@ export default function HomePage() {
                 <div>
                   <div className="text-5xl font-semibold tracking-[-0.08em]">76%</div>
                   <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
-                    Career
+                    Example
                   </div>
                   <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
                     Readiness
@@ -221,7 +210,7 @@ export default function HomePage() {
           <div className="mb-12 text-center">
             <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Pricing</p>
             <h2 className="mt-3 text-4xl font-semibold tracking-[-0.07em]">
-              Start free. Upgrade when your goals become real.
+              Choose the support that fits your next step.
             </h2>
           </div>
 
@@ -241,6 +230,9 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <p className="mt-5 text-center text-sm text-slate-500">
+            All three levels are currently available free in this prototype. Subscription billing and institution accounts are not enabled.
+          </p>
         </section>
       </main>
     </div>

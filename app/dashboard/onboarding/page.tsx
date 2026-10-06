@@ -5,15 +5,17 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { signUpWithEmail } from "@/lib/auth";
+import { levelDetails, LEVELS, type VerniqLevel } from "@/lib/levels";
 
 const initialForm = {
-  name: "Rahul Sharma",
-  email: "you@example.com",
-  password: "demo1234",
+  name: "",
+  email: "",
+  password: "",
   targetRole: "AI / ML Engineer",
   fieldOfStudy: "Computer Science",
   focus: "AI products and deployment",
   track: "Project-led learning",
+  level: "basic" as VerniqLevel,
 };
 
 export default function OnboardingPage() {
@@ -22,9 +24,15 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const handleChange = (field: keyof typeof initialForm, value: string) => {
+  function handleChange(field: "level", value: VerniqLevel): void;
+  function handleChange(field: Exclude<keyof typeof initialForm, "level">, value: string): void;
+  function handleChange(field: keyof typeof initialForm, value: string) {
+    if (field === "level") {
+      setForm((current) => ({ ...current, level: value as VerniqLevel }));
+      return;
+    }
     setForm((current) => ({ ...current, [field]: value }));
-  };
+  }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -39,6 +47,7 @@ export default function OnboardingPage() {
       fieldOfStudy: form.fieldOfStudy,
       learningTrack: form.track,
       focusArea: form.focus,
+      level: form.level,
     });
 
     setIsSubmitting(false);
@@ -69,7 +78,7 @@ export default function OnboardingPage() {
           </div>
 
           <Link
-            href="/dashboard"
+            href="/dashboard/login"
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium dark:border-slate-800 dark:bg-[#111113]"
           >
             Back to dashboard
@@ -100,20 +109,33 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#635bff] to-[#4f46e5] p-5 text-white shadow-lg shadow-[#635bff]/20">
-              <p className="text-sm uppercase tracking-[0.18em] text-indigo-100">Career readiness</p>
-              <div className="mt-4 flex items-end gap-3">
-                <span className="text-4xl font-semibold tracking-[-0.07em]">76%</span>
-                <span className="mb-1 text-sm text-indigo-100">+8% this month</span>
-              </div>
-              <p className="mt-4 text-sm text-indigo-100">
-                Your AI roadmap is already tuned around deployment, ML projects, and interview readiness.
+            <div className="mt-8 rounded-2xl border border-[#635bff]/15 bg-[#635bff]/[0.04] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#5148e5]">Your starting level</p>
+              <p className="mt-3 text-2xl font-semibold">{levelDetails[form.level].name}</p>
+              <p className="mt-2 text-sm text-slate-600">
+                {levelDetails[form.level].subtitle}. You can change your level later as your goals develop.
               </p>
             </div>
           </aside>
 
           <form onSubmit={handleSubmit} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
             <div className="grid gap-5 md:grid-cols-2">
+              <label className="block md:col-span-2">
+                <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Choose your starting level
+                </span>
+                <select
+                  value={form.level}
+                  onChange={(event) => handleChange("level", event.target.value as VerniqLevel)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-950"
+                >
+                  {LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {levelDetails[level].name} — {levelDetails[level].subtitle}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Full name</span>
                 <input

@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, LockKeyhole, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getCurrentSession, signInWithEmail } from "@/lib/auth";
+import { demoAccounts, levelDetails } from "@/lib/levels";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("rahul@verniq.ai");
-  const [password, setPassword] = useState("demo1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -71,14 +72,14 @@ export default function LoginPage() {
 
             <h1 className="mt-5 text-4xl font-semibold tracking-[-0.07em]">Sign in to your AI career dashboard</h1>
             <p className="mt-4 text-slate-600 dark:text-slate-300">
-              Review your readiness, roadmap, job fit, and next-best learning actions in one place.
+              A clear workspace for your learning progress, career direction, and practical next steps.
             </p>
 
             <div className="mt-8 space-y-4">
               {[
-                "Career readiness dashboard",
-                "AI-powered roadmap and feedback",
-                "Resume, jobs, and interview prep",
+                "A learning path matched to your level",
+                "AI mentor and career guidance",
+                "Advanced career tools as you progress",
               ].map((feature) => (
                 <div key={feature} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/70">
                   <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
@@ -89,16 +90,31 @@ export default function LoginPage() {
               ))}
             </div>
 
-            <div className="mt-8 rounded-2xl bg-gradient-to-br from-[#635bff] to-[#4f46e5] p-5 text-white shadow-lg shadow-[#635bff]/20">
-              <p className="text-sm uppercase tracking-[0.18em] text-indigo-100">Demo account</p>
-              <div className="mt-4 flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                  <LockKeyhole className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="font-medium">rahul@verniq.ai</p>
-                  <p className="text-sm text-indigo-100">demo1234</p>
-                </div>
+            <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-600">Explore a demo level</p>
+              <div className="mt-4 space-y-2">
+                {demoAccounts.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => {
+                      setEmail(account.email);
+                      setPassword(account.password);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-[#635bff]/40 hover:bg-[#635bff]/[0.03]"
+                  >
+                    <span className="flex items-center gap-3">
+                      <LockKeyhole className="h-4 w-4 shrink-0" />
+                      <span>
+                        <span className="block font-medium">{account.name}</span>
+                        <span className="block text-xs text-slate-500">{account.email} · {account.password}</span>
+                      </span>
+                    </span>
+                    <span className="rounded-full bg-[#635bff]/10 px-2 py-1 text-[10px] font-semibold uppercase text-[#5148e5]">
+                      {levelDetails[account.level].name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </aside>

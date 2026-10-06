@@ -1,6 +1,6 @@
 # VERNIQ AI
 
-VERNIQ AI is a premium AI career intelligence platform for students and institutions. It combines skill assessment, roadmap generation, project guidance, resume analysis, job match intelligence, and interview preparation into one cohesive experience.
+VERNIQ AI is a career-intelligence prototype with BASIC, INTERMEDIATE, and PRO learning levels. Shared features include the dashboard, AI mentor, Career DNA, and career briefings; learning, project, and career-preparation tools expand with the selected level.
 
 ## Project overview
 
@@ -16,6 +16,7 @@ VERNIQ helps students understand where they are today, identify gaps against the
 - Recharts
 - Vercel-ready local prototype storage via browser localStorage
 - Optional xAI Grok via server-side API calls
+- Browser-local learning progress, check-ins, bookmarks, and portfolio checklist
 
 ## Local setup
 
@@ -26,7 +27,7 @@ npm run dev
 
 Open http://localhost:3000 to view the app.
 
-For local AI features, create `.env.local` from `.env.example` and add your own xAI API key. Never commit `.env.local` or expose the key through a `NEXT_PUBLIC_` variable.
+For local AI features, create `.env.local` from `.env.example` and add a newly generated xAI API key. Never commit `.env.local`, put a key in source code, or expose it through a `NEXT_PUBLIC_` variable. If a key has been pasted into chat, a terminal transcript, or a public repository, revoke it and create a replacement before use.
 
 ## Vercel-ready setup
 
@@ -43,7 +44,27 @@ NEXT_PUBLIC_APP_URL=
 
 xAI powers the AI mentor chat, resume analysis, job-fit analysis, interview coaching, and career guidance API. Add `XAI_API_KEY` in Vercel Project Settings → Environment Variables, then redeploy. `XAI_MODEL` is optional. AI endpoints return a configuration error until a valid key is set; the key is only used by server-side API routes and is never sent to the browser.
 
-The login/profile flow is a browser-local prototype, not production authentication. Do not use it for real accounts or private user data. AI routes are publicly callable in this demo; protect them with real server-side authentication and usage limits before opening the app to the public.
+### Configure a local key safely
+
+1. Revoke any key that has been shared or exposed, then create a new key in your xAI account.
+2. Copy `.env.example` to `.env.local` in the project root and set `XAI_API_KEY` there. Keep the key only in this ignored local file; do not add it to Git, chat, screenshots, or frontend variables.
+3. Restart the development server so Next.js loads the environment variable.
+
+### Configure Vercel
+
+In the Vercel project, open **Settings → Environment Variables**, add `XAI_API_KEY` with the newly generated value for the environments you use, save it, then redeploy. Set `XAI_MODEL` to override the default model if needed. Vercel environment values are not part of the source code and must be configured per project/environment.
+
+The login/profile flow and level-specific progress are a browser-local prototype, not production authentication or billing. Data does not sync across browsers or devices. AI routes are publicly callable in this demo because the browser-local session cannot authenticate API requests; protect them with real server-side authentication and usage limits before opening the app to the public.
+
+The AI News page and opportunity recommendations use xAI's web-search tool to retrieve current external information and provide source links. They require `XAI_API_KEY`; availability and dates can change, so verify details with the original source. GitHub Intelligence reads public profile and repository data from GitHub only. AI-generated skill-gap guidance is based on self-reported inputs and is not a verified assessment. Career readiness and hiring outcomes are not guaranteed.
+
+## Learning levels
+
+- **BASIC:** foundation learning paths, short practice check-ins, daily learning actions, and introductory opportunities.
+- **INTERMEDIATE:** practical learning, projects, public GitHub profile insights, skill-gap coaching, and advanced resources.
+- **PRO:** resume and job tools, interview practice, a portfolio evidence checklist, and a printable 30-day career report.
+
+Users can change levels freely in this prototype. Learning progress and preferences are saved per email in the current browser only.
 
 ## Vercel deployment
 

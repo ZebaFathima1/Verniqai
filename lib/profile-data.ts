@@ -1,10 +1,16 @@
 import { careerDNA, careerSkills, dashboardInsights, demoProfile, interviewMetrics, jobMatch, nextAction, projectCards, roadmapItems, resumeMetrics, techRadar, weeklyMomentum } from "@/lib/demo-data";
+import { getCurrentSession } from "@/lib/auth";
+import { normalizeLevel, type VerniqLevel } from "@/lib/levels";
 
 const PROFILE_STORAGE_KEY = "verniq-profile";
-const SESSION_STORAGE_KEY = "verniq-session";
 
 export type ProfileSnapshot = {
-  profile: typeof demoProfile;
+  profile: typeof demoProfile & {
+    level: VerniqLevel;
+    fieldOfStudy?: string;
+    learningTrack?: string;
+    focusArea?: string;
+  };
   careerDNA: typeof careerDNA;
   careerSkills: typeof careerSkills;
   roadmap: typeof roadmapItems;
@@ -25,11 +31,12 @@ export type ProfileForm = {
   fieldOfStudy?: string;
   learningTrack?: string;
   focusArea?: string;
+  level?: VerniqLevel;
 };
 
 export function getDemoProfileSnapshot(): ProfileSnapshot {
   return {
-    profile: demoProfile,
+    profile: { ...demoProfile, level: "pro" },
     careerDNA,
     careerSkills,
     roadmap: roadmapItems,
@@ -87,24 +94,14 @@ export function saveProfile(input: ProfileForm) {
 
 export async function getDashboardData() {
   const snapshot = getDemoProfileSnapshot();
-  let sessionEmail = "";
-  if (typeof window !== "undefined") {
-    try {
-      const session = window.localStorage.getItem(SESSION_STORAGE_KEY);
-      if (session) {
-        sessionEmail = (JSON.parse(session) as { email?: string }).email ?? "";
-      }
-    } catch {
-      sessionEmail = "";
-    }
-  }
+  const session = getCurrentSession();
+  const sessionEmail = session?.email ?? "";
   const stored = sessionEmail ? readStoredProfile(sessionEmail) : null;
 
-  if (!stored) {
-    return { ok: true, demo: true, data: snapshot };
-  }
-
-  const firstName = stored.name?.split(" ")?.[0] ?? snapshot.profile.name.split(" ")[0];
+  const firstName =
+    stored?.name?.split(" ")?.[0] ??
+    session?.name?.split(" ")?.[0] ??
+    snapshot.profile.name.split(" ")[0];
 
   return {
     ok: true,
@@ -113,8 +110,12 @@ export async function getDashboardData() {
       ...snapshot,
       profile: {
         ...snapshot.profile,
-        name: stored.name ?? snapshot.profile.name,
-        targetRole: stored.targetRole ?? snapshot.profile.targetRole,
+        name: stored?.name ?? session?.name ?? snapshot.profile.name,
+        targetRole: stored?.targetRole ?? session?.targetRole ?? snapshot.profile.targetRole,
+        level: normalizeLevel(stored?.level ?? session?.level),
+        fieldOfStudy: stored?.fieldOfStudy ?? session?.fieldOfStudy,
+        learningTrack: stored?.learningTrack ?? session?.learningTrack,
+        focusArea: stored?.focusArea ?? session?.focusArea,
         headline: `Good morning, ${firstName}.`,
         subheadline: "Here's where your career stands today.",
         readiness: 76,

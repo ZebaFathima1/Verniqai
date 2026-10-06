@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, FolderKanban } from "lucide-react";
+import { useLocalProgress } from "@/lib/client-state";
+import { toggleProject } from "@/lib/local-progress";
 import { projectCards } from "@/lib/demo-data";
 
 export default function ProjectsPage() {
+  const progress = useLocalProgress();
   return (
     <div className="min-h-screen bg-[#fafafa] px-4 py-8 text-slate-900 dark:bg-[#09090b] dark:text-slate-50 lg:px-8">
       <div className="mx-auto max-w-6xl">
@@ -46,9 +51,12 @@ export default function ProjectsPage() {
                 <div className="h-full rounded-full bg-[#635bff]" style={{ width: `${project.impact}%` }} />
               </div>
 
-              <div className="mt-5 flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+              <div className="mt-5 flex items-center justify-between gap-3 text-sm text-slate-500 dark:text-slate-400">
                 <span>{project.duration}</span>
-                <Link href="/dashboard" className="inline-flex items-center gap-1 font-medium text-[#635bff]">
+                <button type="button" aria-pressed={progress.completedProjects.includes(project.title)} onClick={() => toggleProject(project.title)} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">
+                  {progress.completedProjects.includes(project.title) ? "Completed" : "Mark complete"}
+                </button>
+                <Link href="/dashboard/portfolio" className="inline-flex items-center gap-1 font-medium text-[#635bff]">
                   Review <ArrowUpRight className="h-4 w-4" />
                 </Link>
               </div>

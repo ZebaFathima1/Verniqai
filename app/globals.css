@@ -1,7 +1,9 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #fafafa;
+  color-scheme: light;
+  --background: #ffffff;
   --foreground: #111827;
   --card: #ffffff;
   --border: #e5e7eb;
@@ -31,9 +33,13 @@ html {
 }
 
 body {
-  background: var(--background);
+  min-height: 100%;
+  background: #ffffff;
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -42,6 +48,15 @@ body {
 
 ::selection {
   background: rgba(99, 91, 255, 0.12);
+}
+
+.bg-\[\#fafafa\] {
+  background-color: #ffffff;
+}
+
+:focus-visible {
+  outline: 3px solid rgba(99, 91, 255, 0.45);
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,18 +6,8 @@ import { ArrowRight, BriefcaseBusiness, Gauge, MessageSquareText, Sparkles, Targ
 import { useEffect, useState } from "react";
 import { getCurrentSession, signOut } from "@/lib/auth";
 import { getDashboardData, getDemoProfileSnapshot } from "@/lib/profile-data";
-
-const navItems = [
-  { label: "Overview", href: "/dashboard", icon: Gauge },
-  { label: "Career DNA", href: "/dashboard/career-dna", icon: Gauge },
-  { label: "Roadmap", href: "/dashboard/roadmap", icon: TrendingUp },
-  { label: "Next Best Action", href: "/dashboard/next-action", icon: Target },
-  { label: "Projects", href: "/dashboard/projects", icon: BriefcaseBusiness },
-  { label: "Resume", href: "/dashboard/resume", icon: MessageSquareText },
-  { label: "Job Match", href: "/dashboard/jobs", icon: BriefcaseBusiness },
-  { label: "Interview", href: "/dashboard/interview", icon: MessageSquareText },
-  { label: "Tech Radar", href: "/dashboard/tech-radar", icon: TrendingUp },
-];
+import { readProgress, type ProgressState } from "@/lib/local-progress";
+import { levelDetails, levelNavigation } from "@/lib/levels";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -29,6 +19,16 @@ export default function DashboardPage() {
   } | null>(null);
   const [isGeneratingGuidance, setIsGeneratingGuidance] = useState(false);
   const [guidanceError, setGuidanceError] = useState("");
+  const [levelRecommendation, setLevelRecommendation] = useState("");
+  const [progress, setProgress] = useState<ProgressState>({
+    completedSkills: [],
+    completedMissions: [],
+    completedProjects: [],
+    completedPortfolioItems: [],
+    bookmarkedOpportunities: [],
+    viewedBriefings: [],
+    githubUsername: "",
+  });
 
   useEffect(() => {
     const session = getCurrentSession();
@@ -44,10 +44,27 @@ export default function DashboardPage() {
       }
     }
 
+    const syncProgress = () => setProgress(readProgress());
+    syncProgress();
+    window.addEventListener("verniq:progress", syncProgress);
     void loadDashboardData();
+    return () => window.removeEventListener("verniq:progress", syncProgress);
   }, [router]);
 
   const { profile, careerDNA, dashboardInsights, nextAction, roadmap, weeklyMomentum } = snapshot;
+  const navItems = levelNavigation[profile.level].map(({ label, href }) => ({
+    label,
+    href,
+    icon: label.includes("Career DNA")
+      ? Gauge
+      : label.includes("Project") || label.includes("Job") || label.includes("Opportunity")
+        ? BriefcaseBusiness
+        : label.includes("Practice") || label.includes("Interview") || label.includes("Mentor")
+          ? MessageSquareText
+          : label.includes("Roadmap") || label.includes("Learning") || label.includes("News")
+            ? TrendingUp
+            : Target,
+  }));
   const initials = profile.name
     .split(/\s+/)
     .filter(Boolean)
@@ -55,6 +72,34 @@ export default function DashboardPage() {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+
+  const levelAction = {
+    basic: { title: "Learn your next foundation skill", href: "/dashboard/learning", label: "Continue learning" },
+    intermediate: { title: "Build a project that demonstrates your skills", href: "/dashboard/projects", label: "Explore projects" },
+    pro: { title: nextAction.title, href: "/dashboard/interview", label: "Prepare for interviews" },
+  }[profile.level];
+
+  async function recommendNextLevel() {
+    setLevelRecommendation("");
+    try {
+      const response = await fetch("/api/user/level/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          level: profile.level,
+          targetRole: profile.targetRole,
+          completedSkills: progress.completedSkills,
+          completedProjects: progress.completedProjects,
+          assessmentScore: progress.practiceScore ?? undefined,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not check level progress.");
+      setLevelRecommendation(data.message ?? "Keep building useful evidence at your own pace.");
+    } catch (error) {
+      setLevelRecommendation(error instanceof Error ? error.message : "Could not check level progress.");
+    }
+  }
 
   async function generateGuidance() {
     setIsGeneratingGuidance(true);
@@ -66,11 +111,14 @@ export default function DashboardPage() {
         body: JSON.stringify({
           goal: profile.targetRole,
           profile: careerDNA.map(({ category, score }) => `${category}: ${score}/100`).join(", "),
-          focus: "Identify the highest-impact skill gap and recommend practical next steps.",
+          focus: `${profile.level} learner. Identify the highest-impact skill gap and recommend practical next steps using locally saved learning milestones: ${progress.completedSkills.join(", ") || "none"}.`,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not generate career guidance.");
+      if (typeof data.summary !== "string" || !Array.isArray(data.recommendations)) {
+        throw new Error("Career guidance returned an unexpected response.");
+      }
       setAiGuidance(data);
     } catch (error) {
       setGuidanceError(
@@ -90,6 +138,9 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-lg font-semibold tracking-tight">VERNIQ AI</p>
+            <span className="rounded-full bg-[#635bff]/10 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#635bff]">
+              {levelDetails[profile.level].name}
+            </span>
           </div>
         </div>
 
@@ -122,7 +173,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-slate-500 dark:text-slate-400">Overview</p>
               <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                Dashboard
+                {levelDetails[profile.level].subtitle}
               </p>
             </div>
 
@@ -162,10 +213,10 @@ export default function DashboardPage() {
             </Link>
           ))}
           <Link
-            href="/dashboard/mentor"
+            href="/dashboard/levels"
             className="shrink-0 rounded-full bg-[#635bff]/10 px-3 py-2 text-xs font-medium text-[#635bff]"
           >
-            Ask VERNIQ
+            Change level
           </Link>
         </nav>
 
@@ -180,21 +231,21 @@ export default function DashboardPage() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950/60">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Career Readiness</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Saved progress activity</p>
                     <div className="mt-4 flex items-end gap-3">
                       <span className="text-5xl font-semibold tracking-[-0.07em]">
-                        {profile.readiness}%
+                        {progress.completedSkills.length + progress.completedMissions.length + progress.completedProjects.length}
                       </span>
-                      <span className="mb-2 text-sm text-emerald-600">
-                        +{profile.readinessChange}% this month
+                      <span className="mb-2 text-sm text-slate-500">
+                        items saved on this device
                       </span>
                     </div>
                   </div>
 
                   <div className="flex h-32 w-32 items-center justify-center rounded-full border-[10px] border-[#635bff] border-r-slate-200 bg-white text-center dark:bg-[#111113]">
                     <div>
-                      <div className="text-2xl font-semibold">76%</div>
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Ready</div>
+                      <div className="text-2xl font-semibold">{progress.practiceScore ?? "—"}</div>
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Last practice %</div>
                     </div>
                   </div>
                 </div>
@@ -243,21 +294,29 @@ export default function DashboardPage() {
             <div className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Next Best Action</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {profile.level === "basic" ? "Today's Learning Mission" : profile.level === "intermediate" ? "Project Mission" : "Career Mission"}
+                  </p>
                   <h3 className="mt-3 text-2xl font-semibold tracking-[-0.05em] text-slate-900 dark:text-slate-50">
-                    {nextAction.title}
+                    {levelAction.title}
                   </h3>
                   <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                    {nextAction.reason}
+                    {profile.level === "basic"
+                      ? "A short lesson, practice questions, and a small challenge help you build lasting foundations."
+                      : profile.level === "intermediate"
+                        ? "Build practical evidence with a focused project and milestones."
+                        : nextAction.reason}
                   </p>
                   <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-                    {nextAction.description}
+                    {profile.level === "pro"
+                      ? nextAction.description
+                      : "Your progress is saved locally in this browser."}
                   </p>
                   <Link
-                    href="/dashboard/next-action"
+                    href={levelAction.href}
                     className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#635bff]/10 px-3.5 py-2 text-sm font-medium text-[#635bff]"
                   >
-                    Start Mission <ArrowRight className="h-4 w-4" />
+                    {levelAction.label} <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
 
@@ -334,6 +393,45 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-6">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Your learning level</p>
+                    <p className="mt-1 font-semibold">
+                      {levelDetails[profile.level].name} · {levelDetails[profile.level].subtitle}
+                    </p>
+                  </div>
+                  <Link href="/dashboard/levels" className="text-sm font-medium text-[#635bff]">
+                    Compare
+                  </Link>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
+                  <span className="rounded-full bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
+                    {progress.completedSkills.length} skills completed
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
+                    {progress.completedProjects.length} projects completed
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1.5 dark:bg-slate-800">
+                    {progress.completedMissions.length} missions completed
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void recommendNextLevel()}
+                    className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium dark:border-slate-700"
+                  >
+                    Check my progress
+                  </button>
+                  {levelRecommendation && (
+                    <p className="text-sm text-slate-600 dark:text-slate-300" role="status">
+                      {levelRecommendation}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-slate-500 dark:text-slate-400">AI Insights</p>

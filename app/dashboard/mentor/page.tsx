@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { ArrowLeft, Send, Sparkles } from "lucide-react";
+import { getCurrentSession } from "@/lib/auth";
+import { readProgress } from "@/lib/local-progress";
+import { normalizeLevel } from "@/lib/levels";
+import { careerSkills } from "@/lib/demo-data";
 
 const promptSuggestions = [
   "How should I structure my next AI project to make it interview-ready?",
@@ -37,7 +41,17 @@ export default function MentorPage() {
       const response = await fetch("/api/mentor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history }),
+        body: JSON.stringify({
+          message,
+          history,
+          context: {
+            level: normalizeLevel(getCurrentSession()?.level),
+            targetRole: getCurrentSession()?.targetRole ?? "",
+            skills: careerSkills.map((skill) => `${skill.name}: ${skill.score}/100`),
+            completedSkills: readProgress().completedSkills,
+            completedProjects: readProgress().completedProjects,
+          },
+        }),
       });
       const data: unknown = await response.json();
       if (!response.ok) {

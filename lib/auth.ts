@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { demoAccounts, normalizeLevel, type VerniqLevel } from "@/lib/levels";
 
 const signInSchema = z.object({
   email: z.string().trim().email(),
@@ -13,6 +14,7 @@ const signUpSchema = z.object({
   fieldOfStudy: z.string().trim().max(120).optional(),
   learningTrack: z.string().trim().max(120).optional(),
   focusArea: z.string().trim().max(500).optional(),
+  level: z.enum(["basic", "intermediate", "pro"]).optional(),
 });
 
 const PROFILE_STORAGE_KEY = "verniq-profile";
@@ -20,9 +22,9 @@ const SESSION_STORAGE_KEY = "verniq-session";
 const ACCOUNTS_STORAGE_KEY = "verniq-local-accounts";
 
 export const DEMO_USER = {
-  name: "Rahul Sharma",
-  email: "rahul@verniq.ai",
-  password: "demo1234",
+  name: demoAccounts[2].name,
+  email: demoAccounts[2].email,
+  password: demoAccounts[2].password,
 };
 
 export type StoredProfile = {
@@ -32,6 +34,7 @@ export type StoredProfile = {
   fieldOfStudy?: string;
   learningTrack?: string;
   focusArea?: string;
+  level?: VerniqLevel;
 };
 
 type LocalAccount = {
@@ -47,6 +50,7 @@ const storedProfileSchema = z.object({
   fieldOfStudy: z.string().optional(),
   learningTrack: z.string().optional(),
   focusArea: z.string().optional(),
+  level: z.enum(["basic", "intermediate", "pro"]).optional(),
 });
 
 const localAccountSchema = z.record(
@@ -114,6 +118,7 @@ function writeSession(profile: StoredProfile) {
     throw new Error("Sign-in is only available in a browser.");
   }
   window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(profile));
+  window.dispatchEvent(new CustomEvent("verniq:profile"));
 }
 
 function createSalt() {
@@ -139,6 +144,25 @@ function safeEqual(left: string, right: string) {
 export function signOut() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  window.dispatchEvent(new CustomEvent("verniq:profile"));
+}
+
+export function updateCurrentLevel(level: VerniqLevel) {
+  const session = getCurrentSession();
+  if (!session || typeof window === "undefined") {
+    throw new Error("Sign in before changing your learning level.");
+  }
+  const updated = { ...session, level };
+  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
+  window.localStorage.setItem(profileStorageKey(session.email), JSON.stringify(updated));
+
+  const accounts = readAccounts();
+  const account = accounts[session.email.toLowerCase()];
+  if (account) {
+    account.profile = updated;
+    window.localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(accounts));
+  }
+  window.dispatchEvent(new CustomEvent("verniq:profile"));
 }
 
 export async function signInWithEmail(input: unknown) {
@@ -148,20 +172,28 @@ export async function signInWithEmail(input: unknown) {
   }
 
   const email = parsed.data.email.toLowerCase();
-  const isDemoLogin =
-    email === DEMO_USER.email && parsed.data.password === DEMO_USER.password;
+  const demoAccount = demoAccounts.find((demo) => demo.email === email);
 
   try {
-    if (isDemoLogin) {
-      const demoProfile = readStoredProfile(email) ?? {
-        name: DEMO_USER.name,
-        email: DEMO_USER.email,
+    if (demoAccount) {
+      if (parsed.data.password !== demoAccount.password) {
+        return { ok: false as const, error: "Email or password is incorrect." };
+      }
+      const storedProfile = readStoredProfile(email);
+      const demoProfile: StoredProfile = {
+        name: storedProfile?.name ?? demoAccount.name,
+        email,
+        targetRole: storedProfile?.targetRole ?? demoAccount.targetRole,
+        fieldOfStudy: storedProfile?.fieldOfStudy,
+        learningTrack: storedProfile?.learningTrack,
+        focusArea: storedProfile?.focusArea,
+        level: storedProfile?.level ?? demoAccount.level,
       };
       writeSession(demoProfile);
       return {
         ok: true as const,
         demo: true,
-        message: "Signed in to the local VERNIQ demo account.",
+        message: `Signed in to the ${demoAccount.level} demo account.`,
         profile: demoProfile,
       };
     }
@@ -208,8 +240,8 @@ export async function signUpWithEmail(input: unknown) {
   }
 
   const email = parsed.data.email.toLowerCase();
-  if (email === DEMO_USER.email) {
-    return { ok: false as const, error: "That email is reserved for the VERNIQ demo account." };
+  if (demoAccounts.some((demo) => demo.email === email)) {
+    return { ok: false as const, error: "That email is reserved for a VERNIQ demo account." };
   }
 
   try {
@@ -228,6 +260,7 @@ export async function signUpWithEmail(input: unknown) {
       fieldOfStudy: parsed.data.fieldOfStudy,
       learningTrack: parsed.data.learningTrack,
       focusArea: parsed.data.focusArea,
+      level: normalizeLevel(parsed.data.level),
     };
     const salt = createSalt();
     const passwordHash = await hashPassword(parsed.data.password, salt);
