@@ -20,7 +20,7 @@ const completionSchema = z.object({
   ),
 });
 
-export async function requestGroqJson<T>(
+async function requestGroqJsonOnce<T>(
   systemPrompt: string,
   userPrompt: string,
   schema: z.ZodType<T>,
@@ -94,6 +94,28 @@ export async function requestGroqJson<T>(
   }
 
   return parsed.data;
+}
+
+export async function requestGroqJson<T>(
+  systemPrompt: string,
+  userPrompt: string,
+  schema: z.ZodType<T>,
+): Promise<T> {
+  const jsonSchema = JSON.stringify(z.toJSONSchema(schema));
+  const schemaInstructions = `Return exactly one JSON object matching this JSON Schema. Use the exact field names, types, allowed enum values, and constraints. Do not include markdown or extra text.\n${jsonSchema}`;
+  try {
+    return await requestGroqJsonOnce(`${systemPrompt}\n${schemaInstructions}`, userPrompt, schema);
+  } catch (error) {
+    if (!(error instanceof AiServiceError) || error.message !== "Groq returned an unexpected response. Please try again.") {
+      throw error;
+    }
+
+    return requestGroqJsonOnce(
+      `${systemPrompt}\n${schemaInstructions}\nValidate every value against the JSON Schema before answering. If a value does not fit an allowed enum or length constraint, rewrite it to a valid value.`,
+      `${userPrompt}\n\nImportant: the prior attempt did not match the required response schema. Return a corrected response that strictly follows the schema.`,
+      schema,
+    );
+  }
 }
 
 const careerGuidanceSchema = z.object({

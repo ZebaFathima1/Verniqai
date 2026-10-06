@@ -119,7 +119,7 @@ export default function OpportunitiesPage() {
             </article>
           ))}
         </section>
-        {!error && items.length === 0 && <p className="mt-8 text-sm text-slate-500">No resources are listed for this filter.</p>}
+        {!isSearching && !error && items.length === 0 && <p className="mt-8 text-sm text-slate-500">No suggestions were generated for this filter. Try refreshing or choosing another type.</p>}
       </div>
     </main>
   );
