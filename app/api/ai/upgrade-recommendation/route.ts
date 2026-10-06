@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AiServiceError, requestXaiJson } from "@/lib/ai";
+import { AiServiceError, requestGroqJson } from "@/lib/ai";
 import { normalizeLevel } from "@/lib/levels";
 
 const requestSchema = z.object({
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const advice = await requestXaiJson(
+    const advice = await requestGroqJson(
       "You are a supportive learning coach. Never pressure the learner to upgrade. Recommend the next level only if evidence supports readiness; return JSON with recommendation ('stay' or 'explore-next-level'), nextLevel ('basic', 'intermediate', 'pro', or null), reason, suggestedMilestones (up to four), optional (must be true).",
       `Current level: ${current}\nNext level: ${nextLevel}\nTarget role: ${parsed.data.targetRole}\nCompleted skills: ${parsed.data.completedSkills.join(", ")}\nCompleted projects: ${parsed.data.completedProjects.join(", ")}\nAssessment: ${parsed.data.assessmentScore ?? "not provided"}`,
       responseSchema,

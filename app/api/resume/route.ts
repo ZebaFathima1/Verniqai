@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AiServiceError, requestXaiJson } from "@/lib/ai";
+import { AiServiceError, requestGroqJson } from "@/lib/ai";
 
 const requestSchema = z.object({
   resumeText: z.string().trim().min(20).max(12_000),
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await requestXaiJson(
+    const result = await requestGroqJson(
       "You are a resume coach. Analyze only the resume text supplied; do not invent experience or credentials. Return JSON with atsScore (integer 0-100), summary (string), and suggestions (1-6 actionable strings).",
       `Target role: ${parsed.data.targetRole}\n\nResume:\n${parsed.data.resumeText}`,
       responseSchema,

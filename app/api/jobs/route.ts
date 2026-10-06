@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AiServiceError, requestXaiJson } from "@/lib/ai";
+import { AiServiceError, requestGroqJson } from "@/lib/ai";
 
 const requestSchema = z.object({
   role: z.string().trim().min(2).max(200),
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await requestXaiJson(
+    const result = await requestGroqJson(
       "You are a career coach. Assess skill alignment honestly and avoid guaranteeing hiring outcomes. Return JSON with role (string), matchScore (integer 0-100), strengths (array of strings), gaps (array of strings), and nextSteps (1-5 actionable strings).",
       `Target role: ${parsed.data.role}\nCandidate skills: ${parsed.data.skills.join(", ") || "Not provided"}`,
       responseSchema,

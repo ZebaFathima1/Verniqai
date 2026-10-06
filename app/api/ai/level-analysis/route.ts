@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AiServiceError, requestXaiJson } from "@/lib/ai";
+import { AiServiceError, requestGroqJson } from "@/lib/ai";
 
 const requestSchema = z.object({
   level: z.enum(["basic", "intermediate", "pro"]),
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await requestXaiJson(
+    const result = await requestGroqJson(
       "You are a career learning analyst. Adapt your depth to the learner level (basic: simple foundations; intermediate: practical implementation; pro: industry evidence and role preparation). Return valid JSON with strengths, focusAreas, nextAction, levelReadiness (0-100), and explanation. Never claim verified credentials.",
       `Level: ${parsed.data.level}\nTarget role: ${parsed.data.targetRole}\nSkills: ${JSON.stringify(parsed.data.skills)}\nProgress: ${parsed.data.progress}`,
       responseSchema,

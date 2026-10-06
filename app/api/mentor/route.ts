@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { AiServiceError, requestXaiJson } from "@/lib/ai";
+import { AiServiceError, requestGroqJson } from "@/lib/ai";
 
 const requestSchema = z.object({
   message: z.string().trim().min(2).max(2000),
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   }[parsed.data.context.level];
 
   try {
-    const result = await requestXaiJson(
+    const result = await requestGroqJson(
       `You are VERNIQ, a supportive, practical career mentor. ${coachingStyle} Give honest specific advice. Never claim verified credentials or invent user details. Return JSON with a single string field named reply.`,
       `Learner context (provided by the browser and may be incomplete):\nLevel: ${parsed.data.context.level}\nTarget role: ${parsed.data.context.targetRole || "not provided"}\nSkills: ${parsed.data.context.skills.join(", ") || "not provided"}\nCompleted learning: ${parsed.data.context.completedSkills.join(", ") || "none recorded"}\nCompleted projects: ${parsed.data.context.completedProjects.join(", ") || "none recorded"}\n\n${transcript ? `Recent conversation:\n${transcript}\n\n` : ""}Student: ${parsed.data.message}`,
       responseSchema,
