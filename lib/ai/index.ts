@@ -20,6 +20,28 @@ const completionSchema = z.object({
   ),
 });
 
+function groqErrorMessage(status: number, payload: unknown): string {
+  const errorMessage = z.object({
+    error: z.object({
+      message: z.string().optional(),
+      code: z.union([z.string(), z.number()]).optional(),
+    }).optional(),
+  }).safeParse(payload);
+  const detail = errorMessage.success
+    ? errorMessage.data.error?.message?.replace(/[\r\n\t]+/g, " ").slice(0, 240)
+    : undefined;
+
+  if (status === 400 || status === 404 || status === 422) {
+    return detail
+      ? `Groq rejected the request: ${detail}`
+      : "Groq rejected the request. Check GROQ_MODEL and request settings.";
+  }
+  if (status >= 500) {
+    return "Groq is temporarily unable to process this request. Try again later.";
+  }
+  return "Groq could not complete this request. Check the configured model and try again.";
+}
+
 async function requestGroqJsonOnce<T>(
   systemPrompt: string,
   userPrompt: string,
@@ -66,7 +88,19 @@ async function requestGroqJsonOnce<T>(
     if (response.status === 429) {
       throw new AiServiceError("The AI service is busy or the account has reached its limit. Try again later.", 429);
     }
-    throw new AiServiceError("Groq could not complete this request. Check the configured model and try again.", 502);
+    let providerError: unknown;
+    try {
+      providerError = await response.json();
+    } catch {
+      providerError = null;
+    }
+    console.error("Groq request failed", {
+      status: response.status,
+      code: z.object({
+        error: z.object({ code: z.union([z.string(), z.number()]).optional() }).optional(),
+      }).safeParse(providerError).data?.error?.code,
+    });
+    throw new AiServiceError(groqErrorMessage(response.status, providerError), 502);
   }
 
   let payload: unknown;
