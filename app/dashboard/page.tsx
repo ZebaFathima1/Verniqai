@@ -131,10 +131,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#fafafa] text-slate-900 dark:bg-[#09090b] dark:text-slate-50">
+    <div className="flex min-h-[100dvh] w-full min-w-0 bg-[#fafafa] text-slate-900 dark:bg-[#09090b] dark:text-slate-50">
       <aside className="hidden w-[240px] flex-col border-r border-slate-200 bg-white/80 p-6 backdrop-blur-sm dark:border-slate-800 dark:bg-[#111113]/80 lg:flex">
-        <div className="mb-8 flex items-center gap-3">
-          <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
+        <div className="mb-8 flex flex-col items-start gap-2">
+          <BrandLogo size="sidebar" />
           <span className="rounded-full bg-[#635bff]/10 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#635bff]">
             {levelDetails[profile.level].name}
           </span>
@@ -163,42 +163,47 @@ export default function DashboardPage() {
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-[#111113]/80">
-          <div className="flex items-center justify-between px-4 py-3 lg:px-8">
-            <div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="min-w-0 border-b border-slate-200 bg-white/80 backdrop-blur-sm dark:border-slate-800 dark:bg-[#111113]/80">
+          <div className="flex flex-wrap items-center gap-2 px-3 py-3 sm:px-4 lg:gap-3 lg:px-8">
+            <Link href="/" aria-label="VERNIQ AI home" className="lg:hidden">
+              <BrandLogo size="header" />
+            </Link>
+            <div className="order-3 basis-full min-w-0 lg:order-first lg:basis-auto">
               <p className="text-sm text-slate-500 dark:text-slate-400">Overview</p>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              <p className="break-words text-sm font-medium text-slate-900 dark:text-slate-100">
                 {levelDetails[profile.level].subtitle}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:order-2">
               <div className="hidden items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 md:flex dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
                 <span>⌘K</span>
                 <span>Search</span>
               </div>
               <button
                 type="button"
+                aria-label={`Sign out ${profile.name}`}
                 onClick={() => {
                   signOut();
                   router.replace("/dashboard/login");
                 }}
-                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+                className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 sm:px-3"
               >
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#635bff] text-xs font-semibold text-white">
                   {initials}
                 </span>
-                Sign out
+                <span className="hidden sm:inline">Sign out</span>
               </button>
             </div>
           </div>
         </header>
 
-        <nav
-          aria-label="Dashboard navigation"
-          className="flex gap-2 overflow-x-auto border-b border-slate-200 bg-white px-4 py-3 lg:hidden dark:border-slate-800 dark:bg-[#111113]"
-        >
+        <div className="relative min-w-0 border-b border-slate-200 bg-white lg:hidden dark:border-slate-800 dark:bg-[#111113]">
+          <nav
+            aria-label="Dashboard navigation"
+            className="flex gap-2 overflow-x-auto overscroll-x-contain px-3 py-3 pr-12 sm:px-4"
+          >
           {navItems.map(({ label, href }) => (
             <Link
               key={href}
@@ -214,21 +219,26 @@ export default function DashboardPage() {
           >
             Change level
           </Link>
-        </nav>
+          </nav>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent dark:from-[#111113]"
+          />
+        </div>
 
-        <main className="flex-1 p-4 lg:p-8">
-          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
+        <main className="min-w-0 flex-1 p-3 sm:p-4 lg:p-8">
+          <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-[#111113]">
             <p className="text-sm text-slate-500 dark:text-slate-400">{profile.headline}</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em] text-slate-900 dark:text-slate-50">
             {profile.subheadline}
             </h1>
 
             <div className="mt-6 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-950/60">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60 sm:p-5">
+                <div className="flex min-w-0 flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-sm text-slate-500 dark:text-slate-400">Saved progress activity</p>
-                    <div className="mt-4 flex items-end gap-3">
+                    <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
                       <span className="text-5xl font-semibold tracking-[-0.07em]">
                         {progress.completedSkills.length + progress.completedMissions.length + progress.completedProjects.length}
                       </span>
@@ -238,18 +248,18 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex h-32 w-32 items-center justify-center rounded-full border-[10px] border-[#635bff] border-r-slate-200 bg-white text-center dark:bg-[#111113]">
-                    <div>
-                      <div className="text-2xl font-semibold">{progress.practiceScore ?? "—"}</div>
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Last practice %</div>
+                  <div className="flex h-24 w-24 shrink-0 self-center items-center justify-center rounded-full border-8 border-[#635bff] border-r-slate-200 bg-white text-center sm:h-32 sm:w-32 sm:self-auto sm:border-[10px] dark:bg-[#111113]">
+                    <div className="min-w-0 px-1">
+                      <div className="text-xl font-semibold sm:text-2xl">{progress.practiceScore ?? "—"}</div>
+                      <div className="text-[9px] uppercase tracking-[0.12em] text-slate-500 sm:text-[10px] sm:tracking-[0.2em]">Last practice %</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80">
-                  <div>
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80">
+                  <div className="min-w-0">
                     <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Target</p>
-                    <p className="mt-1 font-medium text-slate-900 dark:text-slate-100">
+                    <p className="mt-1 break-words font-medium text-slate-900 dark:text-slate-100">
                       {profile.targetRole}
                     </p>
                   </div>

@@ -65,13 +65,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-[#111113]">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
             <Link href="/dashboard" className="flex items-center">
-              <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
+              <BrandLogo size="header" />
             </Link>
             <span className="rounded-full bg-[#635bff]/10 px-3 py-1 text-xs font-semibold tracking-[0.1em] text-[#635bff]">
               {levelDetails[level].name}
             </span>
           </div>
-          <nav aria-label="Main dashboard navigation" className="mx-auto mt-3 flex max-w-7xl gap-2 overflow-x-auto pb-1">
+          <div className="relative mx-auto mt-3 max-w-7xl">
+            <nav aria-label="Main dashboard navigation" className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 pr-10">
             {levelNavigation[level].map((item) => (
               <Link
                 key={item.href}
@@ -89,7 +90,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Link href="/dashboard/levels" className="shrink-0 rounded-full bg-slate-100 px-3 py-2 text-xs font-medium dark:bg-slate-800">
               Compare levels
             </Link>
-          </nav>
+            </nav>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent dark:from-[#111113]" />
+          </div>
         </header>
       )}
       {isFeatureLocked && requiredLevel ? (

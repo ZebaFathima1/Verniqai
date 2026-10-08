@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   title: "VERNIQ AI — AI Career Intelligence Platform",
   description:
     "Understand your skills, discover your career gaps, and build your path from learning to career readiness.",
+  icons: {
+    icon: "/verniq-ai-logo.png",
+    apple: "/verniq-ai-logo.png",
+  },
 };
 
 export default function RootLayout({

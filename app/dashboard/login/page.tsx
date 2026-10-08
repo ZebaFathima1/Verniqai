@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-1">
-            <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
+            <BrandLogo size="header" />
           </Link>
 
           <Link
@@ -60,13 +60,13 @@ export default function LoginPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <aside className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
+          <aside className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-[#111113]">
             <div className="inline-flex items-center gap-2 rounded-full bg-[#635bff]/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-[#635bff]">
               <Sparkles className="h-3.5 w-3.5" />
               Welcome back
             </div>
 
-            <h1 className="mt-5 text-4xl font-semibold tracking-[-0.07em]">Sign in to your AI career dashboard</h1>
+            <h1 className="mt-5 text-3xl font-semibold tracking-[-0.07em] sm:text-4xl">Sign in to your AI career dashboard</h1>
             <p className="mt-4 text-slate-600 dark:text-slate-300">
               A clear workspace for your learning progress, career direction, and practical next steps.
             </p>
@@ -97,16 +97,16 @@ export default function LoginPage() {
                       setEmail(account.email);
                       setPassword(account.password);
                     }}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-[#635bff]/40 hover:bg-[#635bff]/[0.03]"
+                    className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-[#635bff]/40 hover:bg-[#635bff]/[0.03]"
                   >
-                    <span className="flex items-center gap-3">
+                    <span className="flex min-w-0 flex-1 items-center gap-3">
                       <LockKeyhole className="h-4 w-4 shrink-0" />
-                      <span>
+                      <span className="min-w-0">
                         <span className="block font-medium">{account.name}</span>
-                        <span className="block text-xs text-slate-500">{account.email} · {account.password}</span>
+                        <span className="block break-all text-xs text-slate-500">{account.email} · {account.password}</span>
                       </span>
                     </span>
-                    <span className="rounded-full bg-[#635bff]/10 px-2 py-1 text-[10px] font-semibold uppercase text-[#5148e5]">
+                    <span className="shrink-0 rounded-full bg-[#635bff]/10 px-2 py-1 text-[10px] font-semibold uppercase text-[#5148e5]">
                       {levelDetails[account.level].name}
                     </span>
                   </button>
@@ -115,7 +115,7 @@ export default function LoginPage() {
             </div>
           </aside>
 
-          <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-[#111113]">
             <div className="mb-6">
               <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Access</p>
               <h2 className="mt-2 text-3xl font-semibold tracking-[-0.06em]">Login</h2>

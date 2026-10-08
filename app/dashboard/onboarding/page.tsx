@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { signUpWithEmail } from "@/lib/auth";
 import { levelDetails, LEVELS, type VerniqLevel } from "@/lib/levels";
 
@@ -69,13 +70,10 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-[#fafafa] px-4 py-8 text-slate-900 dark:bg-[#09090b] dark:text-slate-50 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Profile setup</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em]">
-              Create your VERNIQ career profile
-            </h1>
-          </div>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <Link href="/" aria-label="VERNIQ AI home">
+            <BrandLogo size="header" />
+          </Link>
 
           <Link
             href="/dashboard/login"
@@ -83,10 +81,17 @@ export default function OnboardingPage() {
           >
             Back to dashboard
           </Link>
+
+          <div className="basis-full">
+            <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Profile setup</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em]">
+              Create your VERNIQ career profile
+            </h1>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <aside className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
+          <aside className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-[#111113]">
             <div className="inline-flex items-center gap-2 rounded-full bg-[#635bff]/10 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-[#635bff]">
               <Sparkles className="h-3.5 w-3.5" />
               Your AI blueprint
@@ -118,8 +123,8 @@ export default function OnboardingPage() {
             </div>
           </aside>
 
-          <form onSubmit={handleSubmit} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
-            <div className="grid gap-5 md:grid-cols-2">
+          <form onSubmit={handleSubmit} className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-[#111113]">
+            <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
               <label className="block md:col-span-2">
                 <span className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Choose your starting level

@@ -6,10 +6,10 @@ export default function RoadmapPage() {
   return (
     <div className="min-h-screen bg-[#fafafa] px-4 py-8 text-slate-900 dark:bg-[#09090b] dark:text-slate-50 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-8 flex items-center justify-between gap-4">
-          <div>
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Growth roadmap</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em]">Your 6-week progression</h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-[-0.06em] sm:text-3xl">Your 6-week progression</h1>
           </div>
           <Link
             href="/dashboard"

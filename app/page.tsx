@@ -38,30 +38,39 @@ const pricingTiers = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#fafafa] text-slate-900 dark:bg-[#09090b] dark:text-slate-50">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
+      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-4 sm:px-6 sm:py-5">
+        <div className="flex w-full items-center justify-between gap-3">
+          <BrandLogo size="header" />
 
-        <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex dark:text-slate-300">
+          <nav aria-label="Primary navigation" className="hidden flex-1 items-center justify-center gap-6 text-sm text-slate-600 md:flex dark:text-slate-300">
+            <Link href="#product">Product</Link>
+            <Link href="#how-it-works">How it works</Link>
+            <Link href="#pricing">Pricing</Link>
+            <Link href="/dashboard">Dashboard</Link>
+          </nav>
+
+          <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
+            <Link
+              href="/dashboard/login"
+              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium whitespace-nowrap dark:border-slate-800 dark:bg-slate-900 sm:px-4 sm:text-sm"
+            >
+              Login
+            </Link>
+            <Link
+              href="/dashboard/onboarding"
+              className="rounded-full bg-[#635bff] px-3 py-2 text-xs font-medium whitespace-nowrap text-white shadow-sm sm:px-4 sm:text-sm"
+            >
+              <span className="sm:hidden">Get started</span>
+              <span className="hidden sm:inline">Build My Career DNA</span>
+            </Link>
+          </div>
+        </div>
+
+        <nav aria-label="Mobile primary navigation" className="flex w-full gap-5 overflow-x-auto whitespace-nowrap pb-1 text-xs text-slate-600 md:hidden dark:text-slate-300">
           <Link href="#product">Product</Link>
           <Link href="#how-it-works">How it works</Link>
           <Link href="#pricing">Pricing</Link>
-          <Link href="/dashboard">Dashboard</Link>
         </nav>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/login"
-            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium dark:border-slate-800 dark:bg-slate-900"
-          >
-            Login
-          </Link>
-          <Link
-            href="/dashboard/onboarding"
-            className="rounded-full bg-[#635bff] px-4 py-2 text-sm font-medium text-white shadow-sm"
-          >
-            Build My Career DNA
-          </Link>
-        </div>
       </header>
 
       <main>
@@ -71,14 +80,14 @@ export default function HomePage() {
               AI Career Intelligence
             </div>
 
-            <h1 className="text-balance text-5xl font-semibold leading-[0.96] tracking-[-0.09em] text-slate-900 dark:text-slate-50 md:text-6xl">
+            <h1 className="text-balance text-4xl font-semibold leading-[0.98] tracking-[-0.07em] text-slate-900 dark:text-slate-50 sm:text-5xl md:text-6xl">
               Know Where You Are.
               <span className="mt-2 block text-slate-700 dark:text-slate-300">
                 Discover Where You Can Go.
               </span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg text-slate-600 dark:text-slate-300">
+            <p className="mt-6 max-w-xl text-base text-slate-600 dark:text-slate-300 sm:text-lg">
               VERNIQ AI understands your skills, identifies your career gaps, builds
               your roadmap, evaluates your projects, improves your resume, and prepares
               you for real interviews.
