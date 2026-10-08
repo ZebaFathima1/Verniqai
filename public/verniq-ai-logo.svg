@@ -1,0 +1,30 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="markGrad" x1="120" y1="120" x2="700" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8D5DFF"/>
+      <stop offset="0.38" stop-color="#4A86FF"/>
+      <stop offset="0.7" stop-color="#32C9FF"/>
+      <stop offset="1" stop-color="#97F7FF"/>
+    </linearGradient>
+    <linearGradient id="ribbonGrad" x1="200" y1="330" x2="820" y2="540" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6C32FF"/>
+      <stop offset="0.45" stop-color="#3F9DFF"/>
+      <stop offset="1" stop-color="#5FE7FF"/>
+    </linearGradient>
+    <filter id="glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="900" fill="#030D1F"/>
+  <g filter="url(#glow)">
+    <path d="M280 150L520 520C542 560 576 580 616 580C670 580 718 556 764 492L904 286C922 263 907 228 875 233L718 257C692 260 674 278 663 298L526 510L435 380L393 268C382 240 354 216 320 211L280 150Z" fill="url(#markGrad)"/>
+    <path d="M198 490C302 626 430 670 546 621C625 590 696 531 757 466C810 408 845 351 857 273C872 183 833 117 767 96C661 64 524 123 401 232C335 291 280 364 230 435C209 465 190 479 198 490Z" fill="url(#ribbonGrad)"/>
+    <path d="M198 470C273 560 377 610 471 617C580 626 694 587 772 500" stroke="url(#markGrad)" stroke-width="32" stroke-linecap="round"/>
+    <path d="M262 232C304 288 362 334 446 382" stroke="rgba(255,255,255,0.85)" stroke-width="14" stroke-linecap="round"/>
+  </g>
+  <text x="610" y="770" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="164" font-weight="900" letter-spacing="-12" fill="white">VERNIQ AI</text>
+</svg>

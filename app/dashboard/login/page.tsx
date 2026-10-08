@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, LockKeyhole, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { getCurrentSession, signInWithEmail } from "@/lib/auth";
 import { demoAccounts, levelDetails } from "@/lib/levels";
 
@@ -46,13 +47,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#fafafa] px-4 py-8 text-slate-900 dark:bg-[#09090b] dark:text-slate-50 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#635bff] text-sm font-semibold text-white">
-              V
-            </div>
-            <div>
-              <p className="text-lg font-semibold tracking-tight">VERNIQ AI</p>
-            </div>
+          <Link href="/" className="flex items-center gap-1">
+            <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
           </Link>
 
           <Link

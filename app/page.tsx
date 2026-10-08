@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 const problemPoints = [
   {
@@ -38,12 +39,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#fafafa] text-slate-900 dark:bg-[#09090b] dark:text-slate-50">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#635bff] text-sm font-semibold text-white">
-            V
-          </div>
-          <span className="text-lg font-semibold tracking-tight">VERNIQ AI</span>
-        </div>
+        <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
 
         <nav className="hidden items-center gap-6 text-sm text-slate-600 md:flex dark:text-slate-300">
           <Link href="#product">Product</Link>

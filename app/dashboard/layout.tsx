@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { useLocalSession } from "@/lib/client-state";
 import { levelDetails, levelNavigation, type VerniqLevel } from "@/lib/levels";
 
@@ -63,7 +64,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {pathname !== "/dashboard" && (
         <header className="border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-[#111113]">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-            <Link href="/dashboard" className="font-semibold tracking-tight">VERNIQ AI</Link>
+            <Link href="/dashboard" className="flex items-center">
+              <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
+            </Link>
             <span className="rounded-full bg-[#635bff]/10 px-3 py-1 text-xs font-semibold tracking-[0.1em] text-[#635bff]">
               {levelDetails[level].name}
             </span>

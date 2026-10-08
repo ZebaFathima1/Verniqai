@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BriefcaseBusiness, Gauge, MessageSquareText, Sparkles, Target, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 import { getCurrentSession, signOut } from "@/lib/auth";
 import { getDashboardData, getDemoProfileSnapshot } from "@/lib/profile-data";
 import { readProgress, type ProgressState } from "@/lib/local-progress";
@@ -133,15 +134,10 @@ export default function DashboardPage() {
     <div className="flex min-h-screen bg-[#fafafa] text-slate-900 dark:bg-[#09090b] dark:text-slate-50">
       <aside className="hidden w-[240px] flex-col border-r border-slate-200 bg-white/80 p-6 backdrop-blur-sm dark:border-slate-800 dark:bg-[#111113]/80 lg:flex">
         <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#635bff] text-sm font-semibold text-white">
-            V
-          </div>
-          <div>
-            <p className="text-lg font-semibold tracking-tight">VERNIQ AI</p>
-            <span className="rounded-full bg-[#635bff]/10 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#635bff]">
-              {levelDetails[profile.level].name}
-            </span>
-          </div>
+          <BrandLogo compact className="text-slate-900 dark:text-slate-50" variant="dark" />
+          <span className="rounded-full bg-[#635bff]/10 px-2 py-0.5 text-[10px] font-semibold tracking-[0.12em] text-[#635bff]">
+            {levelDetails[profile.level].name}
+          </span>
         </div>
 
         <div className="space-y-2">
