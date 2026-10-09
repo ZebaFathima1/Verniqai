@@ -1,7 +1,5 @@
 import "server-only";
 
-import { PDFParse } from "pdf-parse";
-import mammoth from "mammoth";
 import { MAX_RESUME_TEXT_CHARACTERS, type ResumeFileKind } from "@/lib/resume-analysis";
 
 export class ResumeExtractionError extends Error {
@@ -24,6 +22,7 @@ export async function extractResumeText(buffer: Buffer, kind: ResumeFileKind): P
 
   try {
     if (kind === "pdf") {
+      const { PDFParse } = await import("pdf-parse");
       const parser = new PDFParse({ data: new Uint8Array(buffer) });
       try {
         const result = await parser.getText();
@@ -32,6 +31,8 @@ export async function extractResumeText(buffer: Buffer, kind: ResumeFileKind): P
         await parser.destroy();
       }
     } else if (kind === "docx") {
+      const mammothModule = await import("mammoth");
+      const mammoth = mammothModule.default ?? mammothModule;
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
     } else {

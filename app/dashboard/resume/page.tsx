@@ -111,7 +111,7 @@ export default function ResumePage() {
         const message =
           data && typeof data === "object" && "error" in data && typeof data.error === "string"
             ? data.error
-            : "Resume analysis failed. Please try again.";
+            : "The analysis service returned an invalid response. Please retry, and contact support if the problem continues.";
         const phase =
           data && typeof data === "object" && "phase" in data && data.phase === "file"
             ? "file"
@@ -127,7 +127,7 @@ export default function ResumePage() {
           ? "file"
           : "analysis";
       setError({
-        message: caught instanceof Error ? caught.message : "Resume analysis failed. Please try again.",
+        message: caught instanceof Error ? caught.message : "The analysis service is temporarily unavailable. Please try again.",
         phase,
       });
     } finally {
