@@ -162,8 +162,11 @@ export async function POST(request: Request) {
     if (error instanceof AiServiceError) {
       return NextResponse.json({ error: error.message, phase: "analysis" }, { status: error.status });
     }
+    console.error("Unexpected resume analysis failure", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
     return NextResponse.json(
-      { error: "Resume analysis failed. Please try again.", phase: "analysis" },
+      { error: "The AI analysis could not be completed. Please try again in a moment.", phase: "analysis" },
       { status: 500 },
     );
   }

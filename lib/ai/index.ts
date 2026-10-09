@@ -31,10 +31,18 @@ function groqErrorMessage(status: number, payload: unknown): string {
     ? errorMessage.data.error?.message?.replace(/[\r\n\t]+/g, " ").slice(0, 240)
     : undefined;
 
-  if (status === 400 || status === 404 || status === 422) {
-    return detail
-      ? `Groq rejected the request: ${detail}`
-      : "Groq rejected the request. Check GROQ_MODEL and request settings.";
+  if (status === 400) {
+    const lowerDetail = detail?.toLowerCase() ?? "";
+    if (lowerDetail.includes("failed to generate json") || lowerDetail.includes("failed_generation")) {
+      return "The AI model could not format a valid response. Please retry; if it keeps happening, check the configured model.";
+    }
+    return "The AI provider could not process this request. Check the configured model and try again.";
+  }
+  if (status === 404) {
+    return "The configured AI model was not found. Check GROQ_MODEL.";
+  }
+  if (status === 422) {
+    return "The AI provider could not accept this request. Check the model settings and try again.";
   }
   if (status >= 500) {
     return "Groq is temporarily unable to process this request. Try again later.";
@@ -51,7 +59,7 @@ async function requestGroqJsonOnce<T>(
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new AiServiceError(
-      "AI is not configured. Add GROQ_API_KEY to the server environment and redeploy.",
+      "The AI provider is not configured. Set GROQ_API_KEY in the server environment and restart the app.",
       503,
     );
   }

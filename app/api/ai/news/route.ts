@@ -20,13 +20,13 @@ const categories = [
 
 const newsSchema = z.object({
   items: z.array(z.object({
-    title: z.string().min(8).max(180),
+    title: z.string().min(8).max(160),
     category: z.enum(categories),
-    summary: z.string().min(20).max(500),
-    whyItMatters: z.string().min(15).max(400),
-    action: z.string().min(10).max(300),
-    matchedSkills: z.array(z.string().max(80)).max(6),
-  })).max(8),
+    summary: z.string().min(20).max(320),
+    whyItMatters: z.string().min(15).max(240),
+    action: z.string().min(10).max(180),
+    matchedSkills: z.array(z.string().max(80)).max(4),
+  })).max(4),
 });
 
 type FeedItem = {
@@ -127,9 +127,10 @@ export async function GET(request: Request) {
 
   try {
     const result = await requestGroqJson(
-      "You are VERNIQ AI, a career coach creating evergreen career-topic briefings, not reporting live news. You have no web browsing. Never present an event, organization, date, statistic, or announcement as current or verified. Return valid JSON with an items array of useful themes or questions to research, not purported breaking news. Every summary must clearly state that the reader should check current sources. Each item must have title, category, summary, whyItMatters, action, and matchedSkills. Return up to 6 items and do not fabricate citations.",
-      `Suggest evergreen career topics worth researching.\nTarget role: ${targetRole || "technology careers"}\nLearner level: ${level}\nLearning skills: ${skills.join(", ") || "not supplied"}\nRequested topic: ${selectedCategory}\nAllowed topic labels: ${categories.join(", ")}\nAvoid claims about current events. Use titles phrased as themes to investigate, not headlines about events that may not have happened.`,
+      "You are VERNIQ AI, a career coach creating evergreen career-topic briefings, not reporting live news. You have no web browsing. Never present an event, organization, date, statistic, or announcement as current or verified. Return exactly 3 concise research themes, not breaking news. Every summary must remind the reader to check current sources. Each item has title, category, summary, whyItMatters, action, and matchedSkills. Do not fabricate citations. Keep each field concise and within the supplied JSON schema.",
+      `Suggest 3 distinct evergreen career themes worth researching.\nTarget role: ${targetRole || "technology careers"}\nLearner level: ${level}\nLearning skills: ${skills.join(", ") || "not supplied"}\nRequested topic: ${selectedCategory}\nAllowed topic labels: ${categories.join(", ")}\nAvoid current-event claims and fabricated dates or citations. Use concise titles phrased as research themes. Keep summaries, explanations, actions, and matched skills brief.`,
       newsSchema,
+      { maxCompletionTokens: 2400 },
     );
     const generatedItems = toGeneratedItems(result.items, targetRole);
 
@@ -140,9 +141,13 @@ export async function GET(request: Request) {
       searchedAt: new Date().toISOString(),
     });
   } catch (error) {
-    const aiError = error instanceof AiServiceError
+    const aiError = error instanceof AiServiceError && error.status === 503
       ? error.message
-      : "AI-generated topics could not be loaded. Curated research prompts are still available.";
+      : "AI-generated topics are temporarily unavailable. Curated research prompts are shown instead.";
+    console.error("Career news generation unavailable", {
+      status: error instanceof AiServiceError ? error.status : 500,
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
     return NextResponse.json({
       categories,
       items: curatedItems,
