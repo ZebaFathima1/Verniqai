@@ -22,8 +22,10 @@ export async function extractResumeText(buffer: Buffer, kind: ResumeFileKind): P
 
   try {
     if (kind === "pdf") {
+      const { CanvasFactory, getPath } = await import("pdf-parse/worker");
       const { PDFParse } = await import("pdf-parse");
-      const parser = new PDFParse({ data: new Uint8Array(buffer) });
+      PDFParse.setWorker(getPath());
+      const parser = new PDFParse({ data: new Uint8Array(buffer), CanvasFactory });
       try {
         const result = await parser.getText();
         text = result.text;
