@@ -46,6 +46,7 @@ async function requestGroqJsonOnce<T>(
   systemPrompt: string,
   userPrompt: string,
   schema: z.ZodType<T>,
+  maxCompletionTokens = 1200,
 ): Promise<T> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -70,7 +71,7 @@ async function requestGroqJsonOnce<T>(
           { role: "user", content: userPrompt },
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 1200,
+        max_completion_tokens: maxCompletionTokens,
       }),
       signal: AbortSignal.timeout(30_000),
     });
@@ -134,11 +135,21 @@ export async function requestGroqJson<T>(
   systemPrompt: string,
   userPrompt: string,
   schema: z.ZodType<T>,
+  options: { maxCompletionTokens?: number } = {},
 ): Promise<T> {
+  const maxCompletionTokens = Math.min(
+    4000,
+    Math.max(1200, Math.floor(options.maxCompletionTokens ?? 1200)),
+  );
   const jsonSchema = JSON.stringify(z.toJSONSchema(schema));
   const schemaInstructions = `Return exactly one JSON object matching this JSON Schema. Use the exact field names, types, allowed enum values, and constraints. Do not include markdown or extra text.\n${jsonSchema}`;
   try {
-    return await requestGroqJsonOnce(`${systemPrompt}\n${schemaInstructions}`, userPrompt, schema);
+    return await requestGroqJsonOnce(
+      `${systemPrompt}\n${schemaInstructions}`,
+      userPrompt,
+      schema,
+      maxCompletionTokens,
+    );
   } catch (error) {
     if (!(error instanceof AiServiceError) || error.message !== "Groq returned an unexpected response. Please try again.") {
       throw error;
@@ -148,6 +159,7 @@ export async function requestGroqJson<T>(
       `${systemPrompt}\n${schemaInstructions}\nValidate every value against the JSON Schema before answering. If a value does not fit an allowed enum or length constraint, rewrite it to a valid value.`,
       `${userPrompt}\n\nImportant: the prior attempt did not match the required response schema. Return a corrected response that strictly follows the schema.`,
       schema,
+      maxCompletionTokens,
     );
   }
 }

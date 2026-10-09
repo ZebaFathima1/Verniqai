@@ -1,162 +1,422 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
-import { FormEvent, useState } from "react";
-import { resumeMetrics } from "@/lib/demo-data";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  FileWarning,
+  FileX2,
+  Lightbulb,
+  LoaderCircle,
+  ShieldCheck,
+  Target,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { useRef, useState, type DragEvent, type FormEvent } from "react";
+import { useLocalSession } from "@/lib/client-state";
+import {
+  getResumeFileKind,
+  MAX_RESUME_FILE_BYTES,
+  RESUME_FILE_ACCEPT,
+  resumeAnalysisSchema,
+  type ResumeAnalysis,
+  type ResumeFileKind,
+} from "@/lib/resume-analysis";
 
-const improvements = [
-  "Add measurable outcomes to each bullet point",
-  "Lead with action verbs and AI-specific keywords",
-  "Show cross-functional project ownership",
-  "Reframe coursework as applied problem-solving evidence",
-];
+const scoreLabels = [
+  ["atsReadability", "ATS readability"],
+  ["roleAlignment", "Role alignment"],
+  ["skillsEvidence", "Skills evidence"],
+  ["measurableImpact", "Measurable impact"],
+  ["clarity", "Clarity"],
+] as const;
+
+const formatFileSize = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+function formatFileKind(kind: ResumeFileKind) {
+  return kind.toUpperCase();
+}
 
 export default function ResumePage() {
-  const [targetRole, setTargetRole] = useState("AI / ML Engineer");
-  const [resumeText, setResumeText] = useState("");
-  const [analysis, setAnalysis] = useState<{
-    atsScore: number;
-    summary: string;
-    suggestions: string[];
-  } | null>(null);
+  const session = useLocalSession();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [targetRoleOverride, setTargetRoleOverride] = useState<string | null>(null);
+  const targetRole = targetRoleOverride ?? session?.targetRole ?? "AI / ML Engineer";
+  const [file, setFile] = useState<File | null>(null);
+  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [error, setError] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<{ message: string; phase: "file" | "analysis" } | null>(null);
+
+  function selectFile(nextFile: File | undefined) {
+    if (!nextFile) return;
+    setAnalysis(null);
+    setError(null);
+    const kind = getResumeFileKind(nextFile.name, nextFile.type);
+    if (!kind) {
+      setFile(null);
+      setError({ message: "Choose a PDF, DOCX, or TXT file.", phase: "file" });
+      return;
+    }
+    if (nextFile.size === 0) {
+      setFile(null);
+      setError({ message: "That file is empty. Choose a different resume.", phase: "file" });
+      return;
+    }
+    if (nextFile.size > MAX_RESUME_FILE_BYTES) {
+      setFile(null);
+      setError({ message: "The resume must be 4 MB or smaller.", phase: "file" });
+      return;
+    }
+    setFile(nextFile);
+  }
+
+  function clearFile() {
+    setFile(null);
+    setAnalysis(null);
+    setError(null);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    selectFile(event.dataTransfer.files[0]);
+  }
 
   async function analyzeResume(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!file) {
+      setError({ message: "Choose a resume file before starting the analysis.", phase: "file" });
+      return;
+    }
+
     setIsAnalyzing(true);
-    setError("");
+    setError(null);
     setAnalysis(null);
+    const formData = new FormData();
+    formData.set("targetRole", targetRole.trim());
+    formData.set("resumeFile", file);
+
     try {
-      const response = await fetch("/api/resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeText, targetRole }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Resume analysis failed.");
-      setAnalysis(data);
+      const response = await fetch("/api/resume", { method: "POST", body: formData });
+      const data: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const message =
+          data && typeof data === "object" && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Resume analysis failed. Please try again.";
+        const phase =
+          data && typeof data === "object" && "phase" in data && data.phase === "file"
+            ? "file"
+            : "analysis";
+        throw Object.assign(new Error(message), { phase });
+      }
+      const parsed = resumeAnalysisSchema.safeParse(data);
+      if (!parsed.success) throw Object.assign(new Error("The analysis response was incomplete. Please try again."), { phase: "analysis" });
+      setAnalysis(parsed.data);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Resume analysis failed.");
+      const phase =
+        caught && typeof caught === "object" && "phase" in caught && caught.phase === "file"
+          ? "file"
+          : "analysis";
+      setError({
+        message: caught instanceof Error ? caught.message : "Resume analysis failed. Please try again.",
+        phase,
+      });
     } finally {
       setIsAnalyzing(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] px-4 py-8 text-slate-900 dark:bg-[#09090b] dark:text-slate-50 lg:px-8">
+    <main className="min-h-[80vh] bg-[#fafafa] px-4 py-6 text-slate-900 dark:bg-[#09090b] dark:text-slate-50 sm:py-8 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm uppercase tracking-[0.18em] text-slate-500">Resume strategy</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.06em]">Resume intelligence</h1>
+            <h1 className="text-3xl font-semibold tracking-[-0.06em] sm:text-4xl">Resume Intelligence</h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+              Review your resume against a target role, using only evidence in the document.
+            </p>
           </div>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium dark:border-slate-800 dark:bg-[#111113]"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635bff] dark:border-slate-800 dark:bg-[#111113] dark:hover:bg-slate-900"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
             Dashboard
           </Link>
         </header>
 
-        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {resumeMetrics.map((metric) => (
-            <div key={metric.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
-              <p className="text-sm text-slate-500 dark:text-slate-400">{metric.label}</p>
-              <div className="mt-4 flex items-end gap-2">
-                <span className="text-3xl font-semibold tracking-[-0.06em]">{metric.score}%</span>
-              </div>
-              <div className="mt-4 h-2.5 w-full rounded-full bg-slate-200 dark:bg-slate-800">
-                <div className="h-full rounded-full bg-[#635bff]" style={{ width: `${metric.score}%` }} />
-              </div>
-            </div>
-          ))}
-        </section>
-
-        <form
-          onSubmit={analyzeResume}
-          className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]"
-        >
-          <h2 className="text-xl font-semibold tracking-[-0.04em]">Analyze your resume with AI</h2>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-            Paste resume text to get role-specific feedback. Avoid including sensitive personal information.
-          </p>
-          <div className="mt-5 grid gap-4">
+        <form onSubmit={analyzeResume} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-[#111113]">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-end">
             <label className="block text-sm font-medium">
               Target role
               <input
                 value={targetRole}
-                onChange={(event) => setTargetRole(event.target.value)}
+                onChange={(event) => {
+                  setTargetRoleOverride(event.target.value);
+                  setAnalysis(null);
+                  setError(null);
+                }}
                 maxLength={200}
+                minLength={2}
                 required
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-normal dark:border-slate-700 dark:bg-slate-950"
+                disabled={isAnalyzing}
+                autoComplete="organization-title"
+                placeholder="e.g. AI / ML Engineer"
+                aria-describedby="target-role-help"
+                className="mt-2 min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-base font-normal outline-none transition focus:border-[#635bff] focus:ring-2 focus:ring-[#635bff]/20 dark:border-slate-700 dark:bg-slate-950"
               />
+              <span id="target-role-help" className="mt-2 block text-xs font-normal text-slate-500">We’ll compare the resume with this role.</span>
             </label>
-            <label className="block text-sm font-medium">
-              Resume text
-              <textarea
-                value={resumeText}
-                onChange={(event) => setResumeText(event.target.value)}
-                minLength={20}
-                maxLength={12000}
-                rows={7}
-                required
-                placeholder="Paste your resume content here..."
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 font-normal dark:border-slate-700 dark:bg-slate-950"
+
+            <div>
+              <p className="mb-2 text-sm font-medium">Resume file</p>
+              <input
+                ref={inputRef}
+                id="resume-file"
+                type="file"
+                accept={RESUME_FILE_ACCEPT}
+                tabIndex={-1}
+                onChange={(event) => {
+                  selectFile(event.currentTarget.files?.[0]);
+                  event.currentTarget.value = "";
+                }}
+                aria-label="Choose a PDF, DOCX, or TXT resume"
+                className="sr-only"
               />
-            </label>
-            {error && <p className="text-sm text-rose-600" role="alert">{error}</p>}
+              {file ? (
+                <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/70 sm:p-4">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#635bff]/10 text-[#635bff]">
+                    <FileText aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="break-all text-sm font-medium">{file.name}</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatFileKind(getResumeFileKind(file.name, file.type) ?? "txt")} · {formatFileSize(file.size)}</p>
+                  </div>
+                  <div className="flex w-full gap-2 sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (inputRef.current) inputRef.current.value = "";
+                        inputRef.current?.click();
+                      }}
+                      disabled={isAnalyzing}
+                      className="min-h-11 flex-1 rounded-full border border-slate-200 bg-white px-3 text-sm font-medium transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635bff] disabled:opacity-50 sm:flex-none dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    >
+                      Replace file
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearFile}
+                      disabled={isAnalyzing}
+                      aria-label="Remove selected resume"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635bff] disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                    >
+                      <Trash2 aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  aria-label="Resume upload area"
+                  aria-describedby="resume-file-help"
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={handleDrop}
+                  className={`flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-5 text-center transition ${
+                    isDragging
+                      ? "border-[#635bff] bg-[#635bff]/5"
+                      : "border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/70"
+                  }`}
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#635bff]/10 text-[#635bff]">
+                    <Upload aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={isAnalyzing}
+                    className="mt-3 min-h-11 rounded-lg px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635bff] disabled:opacity-50"
+                  >
+                    Browse files
+                  </button>
+                  <span className="mt-1 text-xs text-slate-500">Or drop a resume here · PDF, DOCX, or TXT · up to 4 MB</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-4 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
+            <p id="resume-file-help" className="flex items-start gap-2 text-xs leading-relaxed text-slate-500 sm:max-w-xl">
+              <ShieldCheck aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              Extracted text is sent to the AI provider for this analysis. Verniq does not save the uploaded file or analysis.
+            </p>
             <button
               type="submit"
-              disabled={isAnalyzing}
-              className="w-fit rounded-full bg-[#635bff] px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+              disabled={isAnalyzing || !file || targetRole.trim().length < 2}
+              className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-[#635bff] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#5148e5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635bff] disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
             >
-              {isAnalyzing ? "Analyzing..." : "Analyze resume"}
+              {isAnalyzing ? <LoaderCircle aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Target aria-hidden="true" className="h-4 w-4" />}
+              {isAnalyzing ? "Reading and analyzing…" : "Analyze resume"}
             </button>
           </div>
-          {analysis && (
-            <div aria-live="polite" className="mt-6 rounded-xl bg-slate-50 p-4 dark:bg-slate-950/70">
-              <p className="text-lg font-semibold">ATS estimate: {analysis.atsScore}%</p>
-              <p className="mt-2 text-sm text-slate-700 dark:text-slate-200">{analysis.summary}</p>
-              <ul className="mt-4 list-inside list-disc space-y-2 text-sm text-slate-700 dark:text-slate-200">
-                {analysis.suggestions.map((suggestion) => <li key={suggestion}>{suggestion}</li>)}
-              </ul>
-            </div>
+
+          {isAnalyzing && (
+            <p role="status" aria-live="polite" className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+              Uploading the document, extracting its text, and generating role-specific feedback. This can take a moment.
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="mt-4 flex items-start gap-2 rounded-xl bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/30 dark:text-rose-200">
+              {error.phase === "file" ? <FileWarning aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" /> : <FileX2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />}
+              <span><strong className="font-semibold">{error.phase === "file" ? "We couldn’t read this file." : "AI analysis didn’t complete."}</strong> {error.message}</span>
+            </p>
           )}
         </form>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
-            <h2 className="text-xl font-semibold tracking-[-0.04em]">Suggested resume rewrite</h2>
-            <div className="mt-6 space-y-4 text-sm text-slate-700 dark:text-slate-200">
-              <p>Built and deployed an AI-driven resume analyzer using Python, NLP, and FastAPI to improve keyword relevance and reduce recruiter screening friction.</p>
-              <p>Reduced model evaluation latency by 32% by restructuring feature pipelines and tuning preprocessing stages for production-grade inference workflows.</p>
-              <p>Collaborated across product and data workflows to translate user pain points into technical deliverables that improved experiment velocity and stakeholder clarity.</p>
+        {analysis && file && (
+          <section aria-labelledby="analysis-heading" className="mt-8">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
+              <div className="min-w-0">
+                <h2 id="analysis-heading" className="text-2xl font-semibold tracking-[-0.05em]">Resume analysis</h2>
+                <p className="mt-2 break-all text-sm text-slate-500">{file.name} <span aria-hidden="true">·</span> {targetRole}</p>
+              </div>
+              <span className="rounded-full bg-[#635bff]/10 px-3 py-1.5 text-xs font-medium text-[#5148e5] dark:text-violet-200">Estimate based on extracted text</span>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#111113]">
-            <h3 className="text-xl font-semibold tracking-[-0.04em]">What to improve</h3>
-            <div className="mt-6 space-y-4">
-              {improvements.map((item) => (
-                <div key={item} className="flex gap-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-950/70">
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" />
-                  <p className="text-sm text-slate-700 dark:text-slate-200">{item}</p>
+            <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.85fr)]">
+              <div className="min-w-0">
+                <section className="border-b border-slate-200 pb-6 dark:border-slate-800">
+                  <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+                    <div>
+                      <p className="text-sm font-medium text-slate-500">Estimated resume fit</p>
+                      <p className="mt-1 text-5xl font-semibold tracking-[-0.08em]">{analysis.overallFitScore}<span className="text-2xl text-slate-400">/100</span></p>
+                    </div>
+                    <p className="max-w-xl pb-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{analysis.summary}</p>
+                  </div>
+                </section>
+
+                <section className="border-b border-slate-200 py-6 dark:border-slate-800">
+                  <h3 className="text-xl font-semibold tracking-[-0.04em]">What works</h3>
+                  <ul className="mt-4 space-y-4">
+                    {analysis.strengths.map((strength, index) => (
+                      <li key={`${strength.finding}-${index}`} className="flex gap-3">
+                        <CheckCircle2 aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{strength.finding}</p>
+                          {strength.evidence && <blockquote className="mt-1 border-l-2 border-slate-200 pl-3 text-sm leading-relaxed text-slate-600 dark:border-slate-700 dark:text-slate-300">“{strength.evidence}”</blockquote>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="border-b border-slate-200 py-6 dark:border-slate-800">
+                  <h3 className="text-xl font-semibold tracking-[-0.04em]">What needs evidence</h3>
+                  <ul className="mt-4 space-y-4">
+                    {analysis.evidenceGaps.map((gap, index) => (
+                      <li key={`${gap.issue}-${index}`} className="grid gap-1 sm:grid-cols-[minmax(0,0.75fr)_minmax(0,1fr)] sm:gap-5">
+                        <p className="text-sm font-medium">{gap.issue}</p>
+                        <div>
+                          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">{gap.evidence}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-slate-500">Why it matters: {gap.impact}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section className="py-6">
+                  <h3 className="text-xl font-semibold tracking-[-0.04em]">Changes to make first</h3>
+                  <ol className="mt-4 space-y-5">
+                    {analysis.priorityEdits.map((edit, index) => (
+                      <li key={`${edit.section}-${index}`} className="grid gap-2 sm:grid-cols-[minmax(0,0.65fr)_minmax(0,1fr)] sm:gap-5">
+                        <div>
+                          <p className="text-sm font-semibold">{edit.section}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{edit.observedIssue}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm leading-relaxed">{edit.suggestedEdit}</p>
+                          {edit.missingDetails.length > 0 && <p className="mt-2 text-xs leading-relaxed text-slate-500">Add only if accurate: {edit.missingDetails.join(" · ")}</p>}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              </div>
+
+              <aside className="min-w-0 lg:border-l lg:border-slate-200 lg:pl-6 dark:lg:border-slate-800">
+                <section aria-labelledby="score-breakdown-heading">
+                  <h3 id="score-breakdown-heading" className="text-lg font-semibold">Score breakdown</h3>
+                  <ul className="mt-4 space-y-5">
+                    {scoreLabels.map(([key, label]) => {
+                      const dimension = analysis.scoreBreakdown[key];
+                      return (
+                        <li key={key}>
+                          <div className="flex items-baseline justify-between gap-3 text-sm">
+                            <span className="font-medium">{label}</span>
+                            <span className="tabular-nums text-slate-600 dark:text-slate-300">{dimension.score}/100</span>
+                          </div>
+                          <div
+                            role="meter"
+                            aria-label={`${label} score`}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={dimension.score}
+                            className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+                          >
+                            <div className="h-full rounded-full bg-[#635bff]" style={{ width: `${dimension.score}%` }} />
+                          </div>
+                          <p className="mt-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">{dimension.reason}</p>
+                          {dimension.evidence && <p className="mt-1 text-xs leading-relaxed text-slate-500">Evidence: “{dimension.evidence}”</p>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+
+                <section className="mt-8 border-t border-slate-200 pt-6 dark:border-slate-800">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold"><FileText aria-hidden="true" className="h-4 w-4 text-[#635bff]" />Keywords found</h3>
+                  <p className="mt-1 text-xs text-slate-500">Found in the uploaded resume.</p>
+                  {analysis.keywordsFound.length > 0 ? (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {analysis.keywordsFound.map((keyword) => <li key={keyword} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs dark:bg-slate-800">{keyword}</li>)}
+                    </ul>
+                  ) : <p className="mt-3 text-sm text-slate-500">No matching terms were identified.</p>}
+                </section>
+
+                <section className="mt-6 border-t border-slate-200 pt-6 dark:border-slate-800">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold"><Lightbulb aria-hidden="true" className="h-4 w-4 text-[#635bff]" />Keywords to consider</h3>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-500">Use these only if they accurately describe your experience.</p>
+                  {analysis.keywordsToConsider.length > 0 ? (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {analysis.keywordsToConsider.map((keyword) => <li key={keyword} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs dark:border-slate-700">{keyword}</li>)}
+                    </ul>
+                  ) : <p className="mt-3 text-sm text-slate-500">No additional role terms to consider.</p>}
+                </section>
+
+                <div className="mt-8 border-t border-slate-200 pt-5 dark:border-slate-800">
+                  <p className="text-xs leading-relaxed text-slate-500">This is an AI-generated estimate, not an ATS score or hiring decision. Confirm every suggestion against your actual experience.</p>
+                  <Link href="/dashboard/jobs" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#635bff] dark:border-slate-700 dark:hover:bg-slate-900">
+                    Check job fit <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                  </Link>
                 </div>
-              ))}
+              </aside>
             </div>
-
-            <Link
-              href="/dashboard/jobs"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#635bff] px-4 py-2 text-sm font-medium text-white"
-            >
-              Check job fit <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
-    </div>
+    </main>
   );
 }

@@ -29,10 +29,11 @@ export default function PortfolioPage() {
         <section className="mt-5 space-y-3">
           {checks.map((item) => {
             const checked = progress.completedPortfolioItems.includes(item.id);
-            return <label key={item.id} className="flex cursor-pointer gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#111113]">
-              <input type="checkbox" checked={checked} onChange={() => togglePortfolioItem(item.id)} className="mt-1 accent-[#635bff]" />
-              <span><span className={`font-medium ${checked ? "line-through text-slate-500" : ""}`}>{item.title}</span><span className="mt-1 block text-sm text-slate-500">{item.hint}</span></span>
-            </label>;
+            const inputId = `portfolio-check-${item.id}`;
+            return <div key={item.id} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#111113]">
+              <input id={inputId} type="checkbox" checked={checked} onChange={() => togglePortfolioItem(item.id)} className="mt-1 accent-[#635bff]" />
+              <div><label htmlFor={inputId} className={`cursor-pointer font-medium ${checked ? "line-through text-slate-500" : ""}`}>{item.title}</label><p className="mt-1 text-sm text-slate-500">{item.hint}</p></div>
+            </div>;
           })}
         </section>
         <p className="mt-5 text-xs text-slate-500">This checklist is coaching, not a formal rating. VERNIQ does not inspect private repositories or verify project claims.</p>

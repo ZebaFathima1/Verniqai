@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { AiServiceError, requestGroqJson } from "@/lib/ai";
-import { normalizeLevel } from "@/lib/levels";
+import { normalizeLevel, newsBriefings } from "@/lib/levels";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +29,84 @@ const newsSchema = z.object({
   })).max(8),
 });
 
+type FeedItem = {
+  id: string;
+  category: string;
+  title: string;
+  summary: string;
+  sourceName: string;
+  sourceUrl: string;
+  action: string;
+  matchedSkills: string[];
+  personalized: boolean;
+  whyItMattersToYou: string;
+  sourceKind: "ai" | "curated";
+};
+
 function newsSearchUrl(title: string, targetRole: string): string {
   const url = new URL("https://www.google.com/search");
   url.searchParams.set("q", `${title} ${targetRole}`.trim());
   url.searchParams.set("tbm", "nws");
   return url.toString();
+}
+
+function normalizeTitle(title: string): string {
+  return title.trim().toLocaleLowerCase().normalize("NFKD").replace(/[^a-z0-9]/g, "");
+}
+
+function toCuratedItems(category: string, targetRole: string, skills: string[]): FeedItem[] {
+  const roleTerms = `${targetRole} ${skills.join(" ")}`.toLocaleLowerCase().split(/[^a-z0-9+#.]+/).filter((term) => term.length > 2);
+  return newsBriefings
+    .filter((briefing) => category === "All" || briefing.category === category)
+    .map((briefing) => {
+      const searchable = `${briefing.title} ${briefing.summary} ${briefing.skills.join(" ")}`.toLocaleLowerCase();
+      const relevance = roleTerms.reduce((score, term) => score + (searchable.includes(term) ? 1 : 0), 0);
+      return { briefing, relevance };
+    })
+    .sort((left, right) => right.relevance - left.relevance)
+    .slice(0, 3)
+    .map(({ briefing }) => ({
+      id: `curated-${briefing.id}`,
+      category: briefing.category,
+      title: briefing.title,
+      summary: briefing.summary,
+      sourceName: "Search current reporting",
+      sourceUrl: newsSearchUrl(briefing.title, targetRole),
+      action: briefing.action,
+      matchedSkills: [],
+      personalized: false,
+      whyItMattersToYou: briefing.whyItMatters,
+      sourceKind: "curated" as const,
+    }));
+}
+
+function toGeneratedItems(items: z.infer<typeof newsSchema>["items"], targetRole: string): FeedItem[] {
+  return items.map((item) => ({
+    ...item,
+    id: `ai-${item.category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${normalizeTitle(item.title).slice(0, 60)}`,
+    sourceName: "Search current reporting",
+    sourceUrl: newsSearchUrl(item.title, targetRole),
+    personalized: item.matchedSkills.length > 0,
+    whyItMattersToYou: item.whyItMatters,
+    sourceKind: "ai" as const,
+  }));
+}
+
+function mergeFeedItems(generated: FeedItem[], curated: FeedItem[]): FeedItem[] {
+  const seenTitles = new Set<string>();
+  const uniqueGenerated = generated.filter((item) => {
+    const key = normalizeTitle(item.title);
+    if (!key || seenTitles.has(key)) return false;
+    seenTitles.add(key);
+    return true;
+  });
+  const uniqueCurated = curated.filter((item) => {
+    const key = normalizeTitle(item.title);
+    if (!key || seenTitles.has(key)) return false;
+    seenTitles.add(key);
+    return true;
+  });
+  return [...uniqueGenerated, ...uniqueCurated];
 }
 
 export async function GET(request: Request) {
@@ -49,6 +122,8 @@ export async function GET(request: Request) {
     .map((skill) => skill.trim().slice(0, 80))
     .filter(Boolean)
     .slice(0, 10);
+  const curatedItems = toCuratedItems(selectedCategory, targetRole, skills);
+  const freshness = "These are evergreen research ideas, not verified live news. Use each search link to check current reporting.";
 
   try {
     const result = await requestGroqJson(
@@ -56,27 +131,24 @@ export async function GET(request: Request) {
       `Suggest evergreen career topics worth researching.\nTarget role: ${targetRole || "technology careers"}\nLearner level: ${level}\nLearning skills: ${skills.join(", ") || "not supplied"}\nRequested topic: ${selectedCategory}\nAllowed topic labels: ${categories.join(", ")}\nAvoid claims about current events. Use titles phrased as themes to investigate, not headlines about events that may not have happened.`,
       newsSchema,
     );
-
-    const items = result.items.map((item) => ({
-        ...item,
-        id: `${item.category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}`,
-        publishedAt: "AI-generated topic · not live news",
-        sourceName: "Search latest reporting",
-        sourceUrl: newsSearchUrl(item.title, targetRole),
-        personalized: item.matchedSkills.length > 0,
-        whyItMattersToYou: item.whyItMatters,
-    }));
+    const generatedItems = toGeneratedItems(result.items, targetRole);
 
     return NextResponse.json({
       categories,
-      items,
-      freshness: "AI-generated career research ideas, not live news. Use the links to check current reporting.",
+      items: mergeFeedItems(generatedItems, curatedItems),
+      freshness,
       searchedAt: new Date().toISOString(),
     });
   } catch (error) {
-    if (error instanceof AiServiceError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    return NextResponse.json({ error: "Could not generate career research topics." }, { status: 500 });
+    const aiError = error instanceof AiServiceError
+      ? error.message
+      : "AI-generated topics could not be loaded. Curated research prompts are still available.";
+    return NextResponse.json({
+      categories,
+      items: curatedItems,
+      freshness,
+      aiError,
+      searchedAt: new Date().toISOString(),
+    });
   }
 }
